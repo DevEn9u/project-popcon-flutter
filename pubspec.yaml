@@ -8,7 +8,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  persistent_bottom_nav_bar: ^6.2.1
   cupertino_icons: ^1.0.8
+  flutter_svg: ^2.0.10+1
+  carousel_slider: ^5.0.0
 
 dev_dependencies:
   flutter_test:
