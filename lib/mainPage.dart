@@ -118,7 +118,7 @@ class HomeTab extends StatelessWidget {
           children: [
             const Divider(color: Colors.grey),
             // 슬라이더 이미지
-            
+
             // 팝업 모음
             Container(
               alignment: Alignment.centerLeft,
