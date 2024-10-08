@@ -2,8 +2,9 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
+import 'package:project_popcon_flutter/screens/free_board.dart';
+import 'package:project_popcon_flutter/screens/free_board_list.dart';
 import 'package:project_popcon_flutter/widgets/custom_navigation_bar.dart';
-import 'package:project_popcon_flutter/screens/popup_board_screen.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -141,11 +142,17 @@ class HomeTab extends StatelessWidget {
                 }).toList(),
               ),
               ////////////////////////////////////////////////
-              MaterialApp(
-                title: 'Popup Board App',
-                home: PopupBoardScreen(boardId: '8'), // 예시로 '1' ID 사용
+              SizedBox(height: 20), // 버튼과 슬라이더 사이에 여백 추가
+              ElevatedButton(
+                onPressed: () {
+                  // 버튼 클릭 시 게시판 페이지로 이동
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => FreeBoardList()),
+                  );
+                },
+                child: Text("자유게시판 보기"),
               ),
-
               ///////////////////////////////////////////////
 
               // 팝업 모음
