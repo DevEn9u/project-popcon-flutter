@@ -138,9 +138,12 @@ class LoginTab extends StatefulWidget {
 
 class _LoginTabState extends State<LoginTab> {
   late ApiService apiService;
-  String testResponse = '';
+  Map<String, dynamic>? memberData;
   bool isLoading = false;
   String? errorMessage;
+
+  final TextEditingController _idController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
   @override
   void initState() {
@@ -153,21 +156,33 @@ class _LoginTabState extends State<LoginTab> {
     // 예: 'http://192.168.1.100:8080'
   }
 
-  Future<void> performTest() async {
+  Future<void> performLogin() async {
+    String id = _idController.text.trim();
+    String password = _passwordController.text.trim();
+
+    if (id.isEmpty || password.isEmpty) {
+      setState(() {
+        errorMessage = '아이디와 비밀번호를 모두 입력해주세요.';
+      });
+      return;
+    }
+
     setState(() {
       isLoading = true;
       errorMessage = null;
-      testResponse = '';
+      memberData = null;
     });
 
     try {
-      String response = await apiService.testConnection();
+      Map<String, dynamic> data = await apiService.login(id, password);
       setState(() {
-        testResponse = response;
+        memberData = data;
       });
+      // 로그인 성공 후, 필요한 추가 작업을 여기에 추가할 수 있습니다.
+      // 예: 토큰 저장, 사용자 상태 업데이트 등
     } catch (e) {
       setState(() {
-        errorMessage = e.toString();
+        errorMessage = e.toString().replaceFirst('Exception: ', '');
       });
     } finally {
       setState(() {
@@ -176,39 +191,172 @@ class _LoginTabState extends State<LoginTab> {
     }
   }
 
+  // 로그아웃 기능 추가 (옵션)
+  void performLogout() {
+    setState(() {
+      memberData = null;
+      _idController.clear();
+      _passwordController.clear();
+      errorMessage = null;
+    });
+  }
+
+  @override
+  void dispose() {
+    _idController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        iconTheme: IconThemeData(color: Colors.white),
+        title: Text("로그인/마이페이지"),
         backgroundColor: Color(0xFF121212),
-        title: const Text("로그인/마이페이지"),
       ),
       body: Container(
+        padding: EdgeInsets.all(16.0),
         color: Color(0xFF121212),
         child: Center(
-          child: isLoading
-              ? CircularProgressIndicator()
-              : Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ElevatedButton(
-                      onPressed: performTest,
-                      child: Text('백엔드 연결 테스트'),
-                    ),
-                    SizedBox(height: 20),
-                    if (testResponse.isNotEmpty)
-                      Text(
-                        testResponse,
-                        style: TextStyle(color: Colors.white, fontSize: 16),
+          child: SingleChildScrollView(
+            child: memberData == null
+                ? Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // 회원 ID 입력 필드
+                      TextField(
+                        controller: _idController,
+                        decoration: InputDecoration(
+                          labelText: '회원 ID',
+                          labelStyle: TextStyle(color: Colors.white),
+                          enabledBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(color: Colors.white),
+                          ),
+                        ),
+                        style: TextStyle(color: Colors.white),
                       ),
-                    if (errorMessage != null)
-                      Text(
-                        errorMessage!,
-                        style: TextStyle(color: Colors.red, fontSize: 16),
+                      SizedBox(height: 20),
+                      // 비밀번호 입력 필드
+                      TextField(
+                        controller: _passwordController,
+                        decoration: InputDecoration(
+                          labelText: '비밀번호',
+                          labelStyle: TextStyle(color: Colors.white),
+                          enabledBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(color: Colors.white),
+                          ),
+                        ),
+                        style: TextStyle(color: Colors.white),
+                        obscureText: true,
                       ),
-                  ],
-                ),
+                      SizedBox(height: 20),
+                      // 로그인 버튼
+                      ElevatedButton(
+                        onPressed: isLoading ? null : performLogin,
+                        child: Text('로그인'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFFf0002e),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 50, vertical: 15),
+                        ),
+                      ),
+                      SizedBox(height: 20),
+                      // 로딩 인디케이터
+                      if (isLoading) CircularProgressIndicator(),
+                      // 오류 메시지 표시
+                      if (errorMessage != null)
+                        Text(
+                          errorMessage!,
+                          style: TextStyle(color: Colors.red, fontSize: 16),
+                        ),
+                    ],
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "로그인 성공!",
+                        style: TextStyle(
+                            color: Colors.green,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 20),
+                      // 로그인된 회원 정보 표시
+                      Container(
+                        padding: EdgeInsets.all(16.0),
+                        decoration: BoxDecoration(
+                          color: Color(0xFF1e1e1e),
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "ID: ${memberData!['id']}",
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 18),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              "이름: ${memberData!['name']}",
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 18),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              "이메일: ${memberData!['email']}",
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 18),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              "전화번호: ${memberData!['phone']}",
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 18),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              "권한: ${memberData!['authority']}",
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 18),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              "포인트: ${memberData!['point']}",
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 18),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              "사업자 번호: ${memberData!['business_number'] ?? 'N/A'}",
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 18),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              "활성화 여부: ${memberData!['enabled'] == 1 ? '활성화' : '비활성화'}",
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 18),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 20),
+                      // 로그아웃 버튼 (옵션)
+                      ElevatedButton(
+                        onPressed: performLogout,
+                        child: Text('로그아웃'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey,
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 50, vertical: 15),
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
         ),
       ),
     );
