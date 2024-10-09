@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
-import 'mainPage.dart';
+import '../screens/mainPage.dart';
 import 'package:project_popcon_flutter/services/api_service.dart';
 
 class CustomNavigationBar extends StatelessWidget {
