@@ -2,6 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../models/image_dto.dart';
 import '../services/api_service.dart';
 import '../models/board_dto.dart';
 
@@ -30,6 +32,9 @@ class _FreeBoardViewState extends State<FreeBoardView> {
 
   @override
   Widget build(BuildContext context) {
+    final apiService = Provider.of<ApiService>(context, listen: false);
+    final String baseUrl = apiService.baseUrl;
+
     return Scaffold(
       appBar: AppBar(
         title: Text('게시글 상세보기'),
@@ -68,6 +73,48 @@ class _FreeBoardViewState extends State<FreeBoardView> {
                     board.contents,
                     style: TextStyle(fontSize: 16),
                   ),
+                  SizedBox(height: 16),
+                  // 이미지 리스트 표시
+                  board.images.isNotEmpty
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '관련 이미지',
+                              style: TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                            SizedBox(height: 8),
+                            Container(
+                              height: 200,
+                              child: ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: board.images.length,
+                                itemBuilder: (context, index) {
+                                  ImageDTO image = board.images[index];
+                                  // 이미지의 절대 URL을 구성
+                                  String imageUrl = '$baseUrl${image.imageUrl}';
+                                  return Padding(
+                                    padding: EdgeInsets.only(right: 8.0),
+                                    child: CachedNetworkImage(
+                                      imageUrl: imageUrl,
+                                      width: 200,
+                                      height: 200,
+                                      fit: BoxFit.cover,
+                                      placeholder: (context, url) =>
+                                          CircularProgressIndicator(),
+                                      errorWidget: (context, url, error) =>
+                                          Icon(Icons.broken_image, size: 50),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        )
+                      : SizedBox(),
+                  SizedBox(height: 16),
+                  // 댓글 섹션 (추후 구현)
                 ],
               ),
             );

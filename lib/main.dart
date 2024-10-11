@@ -1,9 +1,22 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'screens/mainPage.dart';
 import 'package:provider/provider.dart';
 import 'services/api_service.dart';
 
 void main() {
+  // 환경에 따라 Base URL을 동적으로 설정
+  String baseUrl;
+  if (Platform.isAndroid) {
+    baseUrl = 'http://10.0.2.2:8080'; // Android 에뮬레이터
+  } else if (Platform.isIOS) {
+    baseUrl = 'http://localhost:8080'; // iOS 시뮬레이터
+  } else {
+    // 실제 기기나 기타 환경
+    baseUrl = 'http://192.168.1.100:8080'; // 호스트 머신의 IP 주소로 변경
+  }
+
   runApp(
     MultiProvider(
       providers: [
