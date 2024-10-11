@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:project_popcon_flutter/models/popupboard_dto.dart';
 import '../models/board_dto.dart';
 
 class ApiService {
@@ -104,5 +105,50 @@ class ApiService {
     }
   }
 
+  // 팝업게시판 목록 조회
+  // Future<List<PopupboardDTO>> listPopup()async {
+  //   final response = await http.get(
+  //     Uri.parse('$baseUrl/api/popupBoard/list'),
+  //   );
+
+  //   if (response.statusCode == 200) {
+  //     List<dynamic> data = jsonDecode(utf8.decode(response.bodyBytes));
+  //     return data.map((boardJson) => PopupboardDTO.fromJson(boardJson)).toList();
+  //   } else {
+  //     throw Exception('팝업게시판 목록을 불러오는 데 실패했습니다.');
+  //   }
+  // }
+
+  fetchPopupBoards() {}
+
+// 랜덤 5개의 팝업게시판 목록 조회
+Future<List<PopupboardDTO>> fetchRandomPopupBoards() async {
+  try {
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/popupBoard/random'), // 서버에 랜덤 데이터를 요청하는 경로 설정
+    );
+
+    // HTTP 응답 코드 확인
+    if (response.statusCode == 200) {
+      List<dynamic> data = jsonDecode(utf8.decode(response.bodyBytes));
+
+      // 데이터가 비어있지 않은지 확인
+      if (data.isNotEmpty) {
+        return data.map((boardJson) => PopupboardDTO.fromJson(boardJson)).toList();
+      } else {
+        throw Exception('서버에서 반환된 데이터가 비어있습니다.');
+      }
+    } else {
+      // HTTP 에러 메시지와 함께 예외 발생
+      throw Exception('HTTP 에러: ${response.statusCode} - 랜덤 팝업게시판 목록을 불러오는 데 실패했습니다.');
+    }
+  } catch (e) {
+    // 네트워크 오류 처리
+    throw Exception('네트워크 오류: $e');
+  }
+}
+
+
   // 기타 API 메서드 추가 가능
+
 }
