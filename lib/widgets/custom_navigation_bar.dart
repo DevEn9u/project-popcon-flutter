@@ -122,7 +122,6 @@ class NearPopupTab extends StatefulWidget {
 }
 
 class _NearPopupTabState extends State<NearPopupTab> {
-
   final Completer<GoogleMapController> _controller = Completer();
   final LocationSettings locationSettings = LocationSettings(
     accuracy: LocationAccuracy.high,
@@ -139,7 +138,7 @@ class _NearPopupTabState extends State<NearPopupTab> {
     await Permission.location.request().then((status) {
       if (status == PermissionStatus.granted) {
         Geolocator.getPositionStream(locationSettings: locationSettings)
-          .listen((Position position) => newPosition(position));
+            .listen((Position position) => newPosition(position));
       }
     });
   }
@@ -154,8 +153,7 @@ class _NearPopupTabState extends State<NearPopupTab> {
 
     final GoogleMapController controller = await _controller.future;
     controller.moveCamera(CameraUpdate.newCameraPosition(
-      CameraPosition(target: _myLoc, zoom: 17)
-    ));
+        CameraPosition(target: _myLoc, zoom: 17)));
 
     markerAdd(); // 현재 위치에 마커 추가
     // fetchNearbyPopups(); // 주변 팝업 API 호출
@@ -165,11 +163,12 @@ class _NearPopupTabState extends State<NearPopupTab> {
   late BitmapDescriptor customMarker;
   Future<void> setCustomMarker() async {
     customMarker = await BitmapDescriptor.fromAssetImage(
-      const ImageConfiguration(size: Size(48, 48)),
-      'assets/images/marker4.png');
+        const ImageConfiguration(size: Size(48, 48)),
+        'assets/images/marker4.png');
   }
 
   // API를 호출하여 주변 팝업데이터 가져오는 함수
+<<<<<<< HEAD
   Future<void> fetchNearbyPopups() async {
     final apiUrl = 'http://localhost:8080/api/popupBoard/list';
     try {
@@ -185,6 +184,23 @@ class _NearPopupTabState extends State<NearPopupTab> {
         print('Error: $e');
     }
   }
+=======
+  // Future<void> fetchNearbyPopups() async {
+  //   final apiUrl = 'http://localhost:8080/api/popupBoard/list';
+  //   try {
+  //     final response = await http.get(Uri.parse(apiUrl));
+  //     if (response.statusCode == 200) {
+  //       final data = jsonDecode(response.body);
+  //       List<dynamic> popupList = data['popups'];
+  //       _addPopupsToMap(popupList);
+  //     } else {
+  //       print('팝업스토어 정보를 가져오는데 실패했습니다.');
+  //     }
+  //   } catch(e) {
+  //       print('Error: $e');
+  //   }
+  // }
+>>>>>>> 12530b545b3eca1de2fe7fcb3785380f2e4b158f
 
   void _addPopupsToMap(List<dynamic> popupList) {
     _markers.clear(); // 기존 마커 제거
@@ -194,7 +210,7 @@ class _NearPopupTabState extends State<NearPopupTab> {
         markerId: MarkerId(popup['id'].toString()),
         position: LatLng(popup['latitude'], popup['longitude']),
         icon: customMarker, // 사용자 정의 마커
-        onTap: ()=>callSnackBar("${popup['name']}"),
+        onTap: () => callSnackBar("${popup['name']}"),
       );
 
       setState(() {
@@ -211,7 +227,6 @@ class _NearPopupTabState extends State<NearPopupTab> {
       getCurrentLocation();
     });
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -271,7 +286,10 @@ class _NearPopupTabState extends State<NearPopupTab> {
           height: 60,
           child: Row(
             children: [
-              Image.asset('assets/images/marker3.png', width: 60,),
+              Image.asset(
+                'assets/images/marker3.png',
+                width: 60,
+              ),
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -281,11 +299,15 @@ class _NearPopupTabState extends State<NearPopupTab> {
                       IconTheme(
                         data: const IconThemeData(
                           color: Colors.red,
-                        ), 
+                        ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: List.generate(5, (index) {
-                            return Icon(index < myRandomCount ? Icons.star : Icons.star_border,);
+                            return Icon(
+                              index < myRandomCount
+                                  ? Icons.star
+                                  : Icons.star_border,
+                            );
                           }),
                         ),
                       ),
@@ -296,14 +318,10 @@ class _NearPopupTabState extends State<NearPopupTab> {
             ],
           ),
         ),
-
         backgroundColor: Colors.yellow[800],
         duration: const Duration(milliseconds: 60000),
         action: SnackBarAction(
-          label: 'Undo', 
-          textColor: Colors.black,
-          onPressed: (){}
-        ),
+            label: 'Undo', textColor: Colors.black, onPressed: () {}),
       ),
     );
   }
