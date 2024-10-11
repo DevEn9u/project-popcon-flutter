@@ -6,7 +6,7 @@ class PopupboardDTO {
   final String startDate;
   final String contents;
   final String popupAddr;
-  final String thumb;
+  final String? thumb;
   final String category;
   final String writer;
   final int visitCount;

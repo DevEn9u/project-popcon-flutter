@@ -96,6 +96,7 @@ class _FreeBoardViewState extends State<FreeBoardView> {
                                   String imageUrl = '$baseUrl${image.imageUrl}';
                                   return Padding(
                                     padding: EdgeInsets.only(right: 8.0),
+                                    // 이미지 가져오는 부분
                                     child: CachedNetworkImage(
                                       imageUrl: imageUrl,
                                       width: 200,

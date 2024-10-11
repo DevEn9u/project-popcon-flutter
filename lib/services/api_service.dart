@@ -1,9 +1,11 @@
-// lib/services/api_service.dart
-
 import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:cookie_jar/cookie_jar.dart';
+import 'package:project_popcon_flutter/models/popupboard_dto.dart';
 import '../models/board_dto.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:flutter/material.dart';
 
 class ApiService {
   final Dio _dio;
@@ -123,6 +125,38 @@ class ApiService {
       }
     } catch (e) {
       throw Exception('게시글을 불러오는 데 실패했습니다. Error: $e');
+    }
+  }
+
+  // 팝업 이미지 리스트를 가져오는 메서드
+  Future<List<PopupboardDTO>> listPopup() async {
+    final url = Uri.parse('$baseUrl/api/popupBoard/list'); // API 경로로 변경
+
+    // 요청 URL 로그 출력
+    print('API 요청: GET $baseUrl$url');
+
+    try {
+      final response = await http.get(url);
+      print('API 응답 데이터: $response');
+
+      if (response.statusCode == 200) {
+        // 서버에서 받은 JSON 데이터를 리스트로 변환
+        List<dynamic> jsonData = json.decode(response.body);
+        print('Data 출력: $jsonData');
+
+        // thumb 필드가 null인 항목을 필터링
+        List<PopupboardDTO> popupList = jsonData
+            .map((item) => PopupboardDTO.fromJson(item))
+            .where((popup) => popup.thumb != null && popup.thumb!.isNotEmpty) // thumb가 null 또는 빈 문자열인 항목을 필터링
+            .toList();
+
+        return popupList;
+      } else {
+        throw Exception('Failed to load popups');
+      }
+    } catch (e) {
+      print('Error fetching popup list: $e');
+      throw e;
     }
   }
 
