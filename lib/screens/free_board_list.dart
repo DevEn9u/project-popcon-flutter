@@ -155,13 +155,6 @@ class _FreeBoardListState extends State<FreeBoardList> {
                 },
               ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // 게시글 작성 페이지로 이동 (추후 구현)
-        },
-        child: Icon(Icons.add),
-        backgroundColor: Color(0xFFf0002e),
-      ),
     );
   }
 }
