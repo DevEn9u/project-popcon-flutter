@@ -7,6 +7,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
+import 'package:project_popcon_flutter/screens/popup_board_list.dart';
 import '../screens/mainPage.dart';
 import 'package:project_popcon_flutter/services/api_service.dart';
 import 'package:http/http.dart' as http;
@@ -43,7 +44,7 @@ class CustomNavigationBar extends StatelessWidget {
   List<Widget> _buildScreens() {
     return const [
       HomeTab(),
-      PopupBoardTab(),
+      PopupBoardList(),
       NearPopupTab(),
       FreeBoardTab(),
       LoginTab(),
@@ -73,25 +74,6 @@ class CustomNavigationBar extends StatelessWidget {
 }
 
 // HomeTab 제외 나머지 Tab
-class PopupBoardTab extends StatelessWidget {
-  const PopupBoardTab({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        iconTheme: IconThemeData(color: Colors.white),
-        backgroundColor: Color(0xFF121212),
-        title: const Text("팝업게시판"),
-      ),
-      body: Container(
-        color: Color(0xFF121212),
-        child: Center(
-            child: Text('팝업게시판 화면', style: TextStyle(color: Colors.white))),
-      ),
-    );
-  }
-}
 
 class FreeBoardTab extends StatelessWidget {
   const FreeBoardTab({Key? key}) : super(key: key);
