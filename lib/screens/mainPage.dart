@@ -122,7 +122,6 @@ class HomeTab extends StatelessWidget {
             children: [
               const Divider(color: Colors.grey),
               // 슬라이더 이미지
-
               CarouselSlider(
                 options: CarouselOptions(height: 400.0),
                 items: [1, 2, 3, 4, 5].map((i) {
