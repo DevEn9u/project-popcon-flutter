@@ -1,6 +1,7 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:http/http.dart' as http; 
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 // import 'package:project_popcon_flutter/screens/free_board.dart';
 import 'package:project_popcon_flutter/screens/free_board_list.dart';
@@ -31,6 +32,8 @@ class _MainPageState extends State<MainPage> {
 
 class HomeTab extends StatelessWidget {
   const HomeTab({Key? key}) : super(key: key);
+
+  
 
   @override
   Widget build(BuildContext context) {
@@ -122,6 +125,7 @@ class HomeTab extends StatelessWidget {
             children: [
               const Divider(color: Colors.grey),
               // 슬라이더 이미지
+
               CarouselSlider(
                 options: CarouselOptions(height: 400.0),
                 items: [1, 2, 3, 4, 5].map((i) {
