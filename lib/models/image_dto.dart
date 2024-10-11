@@ -19,7 +19,7 @@ class ImageDTO {
       imageUrl: json['image_url'],
       imageType: json['image_type'],
       associatedId: json['associated_id'],
-      uploadDate: DateTime.parse(json['upload_date']), // DateTime 변환
+      uploadDate: DateTime.parse(json['upload_date']),
     );
   }
 }

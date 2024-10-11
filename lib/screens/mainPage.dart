@@ -2,7 +2,7 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
-import 'package:project_popcon_flutter/screens/free_board.dart';
+// import 'package:project_popcon_flutter/screens/free_board.dart';
 import 'package:project_popcon_flutter/screens/free_board_list.dart';
 import 'package:project_popcon_flutter/widgets/custom_navigation_bar.dart';
 
