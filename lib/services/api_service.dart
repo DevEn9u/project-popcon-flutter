@@ -2,29 +2,6 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/board_dto.dart';
 
-Future<List<BoardDTO>> fetchBoards(int page) async {
-  final response = await http
-      .get(Uri.parse('http://10.0.2.2:8080/api/freeBoard/list?page=$page'));
-
-  if (response.statusCode == 200) {
-    List<dynamic> data = json.decode(response.body);
-    return data.map((board) => BoardDTO.fromJson(board)).toList();
-  } else {
-    throw Exception('Failed to load boards');
-  }
-}
-
-Future<BoardDTO> fetchBoardDetail(String boardIdx) async {
-  final response = await http
-      .get(Uri.parse('http://10.0.2.2:8080/api/freeBoard/view/$boardIdx'));
-
-  if (response.statusCode == 200) {
-    return BoardDTO.fromJson(json.decode(response.body));
-  } else {
-    throw Exception('Failed to load board');
-  }
-}
-
 class ApiService {
   final String baseUrl;
 
@@ -83,4 +60,49 @@ class ApiService {
       throw Exception('로그인에 실패했습니다.');
     }
   }
+
+  // 자유게시판 목록 조회
+  Future<List<BoardDTO>> getFreeBoards({int page = 1}) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/freeBoard/list?page=$page'),
+    );
+
+    if (response.statusCode == 200) {
+      List<dynamic> data = jsonDecode(utf8.decode(response.bodyBytes));
+      return data.map((boardJson) => BoardDTO.fromJson(boardJson)).toList();
+    } else {
+      throw Exception('자유게시판 목록을 불러오는 데 실패했습니다.');
+    }
+  }
+
+  // 자유게시판 게시글 상세 조회
+  Future<BoardDTO> getFreeBoardDetail(String boardIdx) async {
+    final String url = '$baseUrl/api/freeBoard/view/$boardIdx';
+
+    // 요청 URL 로그 출력
+    print('API 요청: GET $url');
+
+    final response = await http.get(
+      Uri.parse(url),
+    );
+
+    if (response.statusCode == 200) {
+      Map<String, dynamic> data = jsonDecode(utf8.decode(response.bodyBytes));
+      print('API 응답 데이터: $data');
+      return BoardDTO.fromJson(data);
+    } else if (response.statusCode == 404) {
+      throw Exception('게시글을 찾을 수 없습니다.');
+    } else {
+      try {
+        Map<String, dynamic> errorResponse =
+            jsonDecode(utf8.decode(response.bodyBytes));
+        String message = errorResponse['message'] ?? '게시글을 불러오는 데 실패했습니다.';
+        throw Exception(message);
+      } catch (_) {
+        throw Exception('게시글을 불러오는 데 실패했습니다.');
+      }
+    }
+  }
+
+  // 기타 API 메서드 추가 가능
 }
