@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/image_dto.dart';
+import '../models/comment_dto.dart'; // 추가
 import '../services/api_service.dart';
 import '../models/board_dto.dart';
 
@@ -59,22 +60,25 @@ class _FreeBoardViewState extends State<FreeBoardView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // 게시글 제목
                   Text(
                     board.boardTitle,
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 8),
+                  // 작성자 정보 및 조회수
                   Text(
                     '작성자: ${board.writerName} | 작성일: ${board.postDate.toLocal().toString().split(' ')[0]} | 조회수: ${board.visitCount}',
                     style: TextStyle(color: Colors.grey),
                   ),
                   SizedBox(height: 16),
+                  // 게시글 내용
                   Text(
                     board.contents,
                     style: TextStyle(fontSize: 16),
                   ),
                   SizedBox(height: 16),
-                  // 이미지 리스트 표시
+                  // 이미지 섹션
                   board.images.isNotEmpty
                       ? Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -85,37 +89,120 @@ class _FreeBoardViewState extends State<FreeBoardView> {
                                   fontSize: 18, fontWeight: FontWeight.bold),
                             ),
                             SizedBox(height: 8),
-                            Container(
-                              height: 200,
-                              child: ListView.builder(
-                                scrollDirection: Axis.horizontal,
-                                itemCount: board.images.length,
-                                itemBuilder: (context, index) {
-                                  ImageDTO image = board.images[index];
-                                  // 이미지의 절대 URL을 구성
-                                  String imageUrl = '$baseUrl${image.imageUrl}';
-                                  return Padding(
-                                    padding: EdgeInsets.only(right: 8.0),
-                                    // 이미지 가져오는 부분
-                                    child: CachedNetworkImage(
-                                      imageUrl: imageUrl,
-                                      width: 200,
-                                      height: 200,
-                                      fit: BoxFit.cover,
-                                      placeholder: (context, url) =>
-                                          CircularProgressIndicator(),
-                                      errorWidget: (context, url, error) =>
-                                          Icon(Icons.broken_image, size: 50),
-                                    ),
-                                  );
-                                },
-                              ),
+                            ListView.builder(
+                              shrinkWrap: true,
+                              physics: NeverScrollableScrollPhysics(),
+                              itemCount: board.images.length,
+                              itemBuilder: (context, index) {
+                                ImageDTO image = board.images[index];
+                                String imageUrl = '$baseUrl${image.imageUrl}';
+                                return Padding(
+                                  padding: EdgeInsets.only(bottom: 8.0),
+                                  child: CachedNetworkImage(
+                                    imageUrl: imageUrl,
+                                    width: double.infinity,
+                                    height: 200, // 원하는 높이로 조정
+                                    fit: BoxFit.cover,
+                                    placeholder: (context, url) => Center(
+                                        child: CircularProgressIndicator()),
+                                    errorWidget: (context, url, error) =>
+                                        Icon(Icons.broken_image, size: 50),
+                                  ),
+                                );
+                              },
                             ),
                           ],
                         )
                       : SizedBox(),
                   SizedBox(height: 16),
-                  // 댓글 섹션 (추후 구현)
+                  // 댓글 섹션
+                  board.comments.isNotEmpty
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '댓글',
+                              style: TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                            SizedBox(height: 8),
+                            ListView.builder(
+                              shrinkWrap: true,
+                              physics: NeverScrollableScrollPhysics(),
+                              itemCount: board.comments.length,
+                              itemBuilder: (context, index) {
+                                CommentDTO comment = board.comments[index];
+                                return Card(
+                                  margin: EdgeInsets.symmetric(vertical: 4.0),
+                                  child: Padding(
+                                    padding: EdgeInsets.all(8.0),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        // 댓글 작성자 및 작성일
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              comment.comWriterName,
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.bold),
+                                            ),
+                                            Text(
+                                              comment.getFormattedPostDate(),
+                                              style:
+                                                  TextStyle(color: Colors.grey),
+                                            ),
+                                          ],
+                                        ),
+                                        SizedBox(height: 4),
+                                        // 댓글 이미지 (있을 경우)
+                                        comment.comImg.isNotEmpty
+                                            ? Column(
+                                                children:
+                                                    comment.comImg.map((image) {
+                                                  String imageUrl =
+                                                      '$baseUrl${image.imageUrl}';
+                                                  return Padding(
+                                                    padding: EdgeInsets.only(
+                                                        top: 4.0),
+                                                    child: CachedNetworkImage(
+                                                      imageUrl: imageUrl,
+                                                      width: double.infinity,
+                                                      height: 150,
+                                                      fit: BoxFit.cover,
+                                                      placeholder: (context,
+                                                              url) =>
+                                                          Center(
+                                                              child:
+                                                                  CircularProgressIndicator()),
+                                                      errorWidget: (context,
+                                                              url, error) =>
+                                                          Icon(
+                                                              Icons
+                                                                  .broken_image,
+                                                              size: 50),
+                                                    ),
+                                                  );
+                                                }).toList(),
+                                              )
+                                            : SizedBox(),
+                                        SizedBox(height: 4),
+                                        // 댓글 내용
+                                        Text(comment.comContents),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        )
+                      : Text('댓글이 없습니다.'),
+                  SizedBox(height: 16),
+                  // 댓글 작성 기능은 생략
                 ],
               ),
             );

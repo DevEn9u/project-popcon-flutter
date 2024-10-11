@@ -6,6 +6,8 @@ import '../models/board_dto.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+import '../models/comment_dto.dart'; // 추가
+import '../models/image_dto.dart'; // 필요 시 추가
 
 class ApiService {
   final Dio _dio;
@@ -16,8 +18,8 @@ class ApiService {
     _dio.interceptors.add(CookieManager(CookieJar()));
     // 기본 옵션 설정
     _dio.options.baseUrl = baseUrl;
-    _dio.options.connectTimeout = Duration(milliseconds: 5000); // 5초
-    _dio.options.receiveTimeout = Duration(milliseconds: 3000); // 3초
+    _dio.options.connectTimeout = Duration(seconds: 5); // 5초
+    _dio.options.receiveTimeout = Duration(seconds: 3); // 3초
     _dio.options.headers['Content-Type'] = 'application/json';
   }
 
