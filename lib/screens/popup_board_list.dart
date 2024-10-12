@@ -1,7 +1,11 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+
 import 'package:http/http.dart' as http;
+import 'package:project_popcon_flutter/screens/popup_board_view.dart';
+import 'package:project_popcon_flutter/widgets/custom_drawer.dart';
+import 'package:project_popcon_flutter/widgets/popup_board_widget.dart';
 
 class PopupBoard extends StatefulWidget {
   const PopupBoard({super.key});
@@ -14,6 +18,64 @@ class _PopupBoardState extends State<PopupBoard> {
   @override
   Widget build(BuildContext context) {
     return const Placeholder();
+  }
+}
+
+class PopupBoardList extends StatelessWidget {
+  const PopupBoardList({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        // Drawer 아이콘의 색상 변경
+        iconTheme: IconThemeData(color: Colors.white),
+        backgroundColor: Color(0xFF121212),
+        title: Image.asset(
+          'assets/images/logo.png',
+          height: 30,
+        ),
+      ),
+      endDrawer: const CustomDrawer(),
+      body: SingleChildScrollView(
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 20.0),
+          color: Color(0xFF121212),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start, // 위쪽에 정렬
+            children: [
+              const Divider(color: Colors.grey),
+              Container(
+                alignment: Alignment.centerLeft,
+                child: RichText(
+                  text: TextSpan(
+                    children: const [
+                      TextSpan(
+                        text: "진행중인 팝업",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 24.0,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      TextSpan(
+                        text: " 10월",
+                        style: TextStyle(
+                          color: Color(0xFFf0002e),
+                          fontSize: 24.0,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              PopupBoardWidget(),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

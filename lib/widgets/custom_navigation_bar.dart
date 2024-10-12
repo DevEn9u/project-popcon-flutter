@@ -1,7 +1,16 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
+import 'package:project_popcon_flutter/screens/popup_board_list.dart';
 import '../screens/mainPage.dart';
 import 'package:project_popcon_flutter/services/api_service.dart';
+import 'package:http/http.dart' as http;
 
 class CustomNavigationBar extends StatelessWidget {
   final PersistentTabController controller;
@@ -35,7 +44,7 @@ class CustomNavigationBar extends StatelessWidget {
   List<Widget> _buildScreens() {
     return const [
       HomeTab(),
-      PopupBoardTab(),
+      PopupBoardList(),
       NearPopupTab(),
       FreeBoardTab(),
       LoginTab(),
@@ -65,25 +74,6 @@ class CustomNavigationBar extends StatelessWidget {
 }
 
 // HomeTab 제외 나머지 Tab
-class PopupBoardTab extends StatelessWidget {
-  const PopupBoardTab({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        iconTheme: IconThemeData(color: Colors.white),
-        backgroundColor: Color(0xFF121212),
-        title: const Text("팝업게시판"),
-      ),
-      body: Container(
-        color: Color(0xFF121212),
-        child: Center(
-            child: Text('팝업게시판 화면', style: TextStyle(color: Colors.white))),
-      ),
-    );
-  }
-}
 
 class FreeBoardTab extends StatelessWidget {
   const FreeBoardTab({Key? key}) : super(key: key);
@@ -105,24 +95,199 @@ class FreeBoardTab extends StatelessWidget {
   }
 }
 
-class NearPopupTab extends StatelessWidget {
+// NearPopupTab을 StatefulWidget으로 변경하여 구글 지도 API 가져오기
+class NearPopupTab extends StatefulWidget {
   const NearPopupTab({Key? key}) : super(key: key);
+
+  @override
+  State<NearPopupTab> createState() => _NearPopupTabState();
+}
+
+class _NearPopupTabState extends State<NearPopupTab> {
+  final Completer<GoogleMapController> _controller = Completer();
+  final LocationSettings locationSettings = LocationSettings(
+    accuracy: LocationAccuracy.high,
+    distanceFilter: 10,
+  );
+  LatLng _myLoc = const LatLng(0, 0);
+  String lat = '';
+  String lon = '';
+  List<Marker> _markers = [];
+  final Random _random = Random();
+
+  // 현재 위치 가져오기 및 위치 변경시 호출
+  void getCurrentLocation() async {
+    await Permission.location.request().then((status) {
+      if (status == PermissionStatus.granted) {
+        Geolocator.getPositionStream(locationSettings: locationSettings)
+            .listen((Position position) => newPosition(position));
+      }
+    });
+  }
+
+  // 위치 변경 시 호출되는 함수
+  void newPosition(Position position) async {
+    if (position.accuracy > 25) return;
+
+    lat = '${position.latitude}';
+    lon = '${position.longitude}';
+    _myLoc = LatLng(position.latitude, position.longitude);
+
+    final GoogleMapController controller = await _controller.future;
+    controller.moveCamera(CameraUpdate.newCameraPosition(
+        CameraPosition(target: _myLoc, zoom: 17)));
+
+    markerAdd(); // 현재 위치에 마커 추가
+    // fetchNearbyPopups(); // 주변 팝업 API 호출
+  }
+
+  // 사용자 정의 마커 세팅
+  late BitmapDescriptor customMarker;
+  Future<void> setCustomMarker() async {
+    customMarker = await BitmapDescriptor.fromAssetImage(
+        const ImageConfiguration(size: Size(48, 48)),
+        'assets/images/marker4.png');
+  }
+
+  // API를 호출하여 주변 팝업데이터 가져오는 함수
+
+  // Future<void> fetchNearbyPopups() async {
+  //   final apiUrl = 'http://localhost:8080/api/popupBoard/list';
+  //   try {
+  //     final response = await http.get(Uri.parse(apiUrl));
+  //     if (response.statusCode == 200) {
+  //       final data = jsonDecode(response.body);
+  //       List<dynamic> popupList = data['popups'];
+  //       _addPopupsToMap(popupList);
+  //     } else {
+  //       print('팝업스토어 정보를 가져오는데 실패했습니다.');
+  //     }
+  //   } catch(e) {
+  //       print('Error: $e');
+  //   }
+  // }
+
+
+  void _addPopupsToMap(List<dynamic> popupList) {
+    _markers.clear(); // 기존 마커 제거
+
+    for (var popup in popupList) {
+      final marker = Marker(
+        markerId: MarkerId(popup['id'].toString()),
+        position: LatLng(popup['latitude'], popup['longitude']),
+        icon: customMarker, // 사용자 정의 마커
+        onTap: () => callSnackBar("${popup['name']}"),
+      );
+
+      setState(() {
+        _markers.add(marker); // 마커 추가
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    setCustomMarker().then((value) {
+      getCurrentLocation();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Color(0xFF121212),
-        title: const Text("내주변 팝업"),
+        backgroundColor: const Color(0xFF121212),
+        title: const Text("내주변팝업", style: TextStyle(color: Colors.white)),
       ),
-      body: Container(
-        color: Color(0xFF121212),
-        child: Center(
-          child: Text(
-            '내주변 팝업 화면',
-            style: TextStyle(color: Colors.white),
+      body: Center(
+        child: Column(
+          children: [
+            Container(
+              color: const Color(0xFF121212),
+              height: 400,
+              child: GoogleMap(
+                mapType: MapType.normal,
+                initialCameraPosition: const CameraPosition(
+                  target: LatLng(0, 0),
+                  zoom: 17.0,
+                ),
+                onMapCreated: (GoogleMapController controller) {
+                  _controller.complete(controller);
+                },
+                markers: Set.from(_markers), // 마커들
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 현재 위치에 마커를 추가하는 경우
+  void markerAdd() {
+    final marker = Marker(
+      markerId: const MarkerId('marker'),
+      position: _myLoc,
+      icon: customMarker,
+      onTap: () => callSnackBar("안녕하세요 홍길동님!"),
+    );
+
+    setState(() {
+      print('666');
+      _markers.clear();
+      _markers.add(marker);
+    });
+  }
+
+  callSnackBar(msg) {
+    int myRandomCount = _random.nextInt(5);
+    print(myRandomCount);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Container(
+          color: Color(0xFF121212),
+          height: 60,
+          child: Row(
+            children: [
+              Image.asset(
+                'assets/images/marker3.png',
+                width: 60,
+              ),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(msg, style: const TextStyle(color: Colors.black)),
+                  Row(
+                    children: [
+                      IconTheme(
+                        data: const IconThemeData(
+                          color: Colors.red,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: List.generate(5, (index) {
+                            return Icon(
+                              index < myRandomCount
+                                  ? Icons.star
+                                  : Icons.star_border,
+                            );
+                          }),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
+        backgroundColor: Colors.yellow[800],
+        duration: const Duration(milliseconds: 60000),
+        action: SnackBarAction(
+            label: 'Undo', textColor: Colors.black, onPressed: () {}),
       ),
     );
   }
