@@ -150,6 +150,7 @@ class _NearPopupTabState extends State<NearPopupTab> {
   }
 
   // API를 호출하여 주변 팝업데이터 가져오는 함수
+
   // Future<void> fetchNearbyPopups() async {
   //   final apiUrl = 'http://localhost:8080/api/popupBoard/list';
   //   try {
@@ -165,6 +166,7 @@ class _NearPopupTabState extends State<NearPopupTab> {
   //       print('Error: $e');
   //   }
   // }
+
 
   void _addPopupsToMap(List<dynamic> popupList) {
     _markers.clear(); // 기존 마커 제거
@@ -217,7 +219,6 @@ class _NearPopupTabState extends State<NearPopupTab> {
                 markers: Set.from(_markers), // 마커들
               ),
             ),
-            Text("$lat $lon"), // 현재 위도 경도 표시
           ],
         ),
       ),
