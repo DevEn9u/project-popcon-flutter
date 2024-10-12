@@ -7,6 +7,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
+import 'package:project_popcon_flutter/screens/free_board_list.dart';
 import 'package:project_popcon_flutter/screens/popup_board_list.dart';
 import '../screens/mainPage.dart';
 import 'package:project_popcon_flutter/services/api_service.dart';
@@ -74,22 +75,26 @@ class CustomNavigationBar extends StatelessWidget {
 }
 
 // HomeTab 제외 나머지 Tab
-
+// 자유게시판 탭
 class FreeBoardTab extends StatelessWidget {
   const FreeBoardTab({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        iconTheme: IconThemeData(color: Colors.white),
-        backgroundColor: Color(0xFF121212),
-        title: const Text("자유게시판"),
-      ),
-      body: Container(
-        color: Color(0xFF121212),
-        child: Center(
-            child: Text('자유게시판 화면', style: TextStyle(color: Colors.white))),
+    // 페이지 빌드 시 바로 PopupBoardList 페이지로 이동
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => FreeBoardList(),
+        ),
+      );
+    });
+
+    // 대체 페이지 반환 (실제로 표시되지 않음)
+    return const Scaffold(
+      body: Center(
+        child: CircularProgressIndicator(), // 로딩 인디케이터 또는 빈 위젯
       ),
     );
   }
@@ -166,7 +171,6 @@ class _NearPopupTabState extends State<NearPopupTab> {
   //       print('Error: $e');
   //   }
   // }
-
 
   void _addPopupsToMap(List<dynamic> popupList) {
     _markers.clear(); // 기존 마커 제거

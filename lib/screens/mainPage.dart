@@ -83,7 +83,8 @@ class _HomeTabState extends State<HomeTab> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return Center(child: CircularProgressIndicator()); // 로딩 중
                   } else if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}')); // 오류 발생 시
+                    return Center(
+                        child: Text('Error: ${snapshot.error}')); // 오류 발생 시
                   } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
                     return Center(child: Text('No images available')); // 데이터 없음
                   } else {
@@ -95,16 +96,16 @@ class _HomeTabState extends State<HomeTab> {
                 },
               ),
 
-              SizedBox(height: 20), // 버튼과 슬라이더 사이에 여백 추가
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => FreeBoardList()),
-                  );
-                },
-                child: Text("자유게시판 보기"),
-              ),
+              //SizedBox(height: 20), // 버튼과 슬라이더 사이에 여백 추가
+              // ElevatedButton(
+              //   onPressed: () {
+              //     Navigator.push(
+              //       context,
+              //       MaterialPageRoute(builder: (context) => FreeBoardList()),
+              //     );
+              //   },
+              //   child: Text("자유게시판 보기"),
+              // ),
               ///////////////////////////////////////////////
 
               // 팝업 모음
