@@ -6,7 +6,7 @@ class PopupboardDTO {
   final String startDate;
   final String contents;
   final String popupAddr;
-  final String? thumb;
+  final String? thumb; // thumb 값을 nullable로 변경
   final String category;
   final String writer;
   final int visitCount;
@@ -17,7 +17,6 @@ class PopupboardDTO {
   final String openHours;
   final bool liked;
 
-
   PopupboardDTO({
     required this.boardIdx,
     required this.boardTitle,
@@ -26,7 +25,7 @@ class PopupboardDTO {
     required this.startDate,
     required this.contents,
     required this.popupAddr,
-    required this.thumb,
+    this.thumb, // nullable 필드는 required 제거
     required this.category,
     required this.writer,
     required this.visitCount,
@@ -35,28 +34,28 @@ class PopupboardDTO {
     required this.likesCount,
     required this.openDays,
     required this.openHours,
-    required this.liked
+    required this.liked,
   });
 
   factory PopupboardDTO.fromJson(Map<String, dynamic> json) {
     return PopupboardDTO(
-      boardIdx: json['board_idx'],
-      boardTitle: json['board_title'],
-      postDate: DateTime.parse(json['postdate']),
-      endDate: json['end_date'],
-      startDate: json['start_date'],
-      contents: json['contents'],
-      popupAddr: json['popup_addr'],
-      thumb: json['thumb'],
-      category: json['category'],
-      writer: json['writer'],
-      visitCount: json['visitcount'],
-      role: json['role'],
-      popupFee: json['popup_fee'],
-      likesCount: json['likes_count'],
-      openDays: json['open_days'],
-      openHours: json['open_hours'],
-      liked: json['liked']
+      boardIdx: json['board_idx'] ?? 'default_idx', // 기본값 설정
+      boardTitle: json['board_title'] ?? 'Untitled',
+      postDate: DateTime.tryParse(json['postdate'] ?? '') ?? DateTime.now(), // 기본값 또는 현재 날짜
+      endDate: json['end_date'] ?? 'unknown',
+      startDate: json['start_date'] ?? 'unknown',
+      contents: json['contents'] ?? '',
+      popupAddr: json['popup_addr'] ?? '',
+      thumb: json['thumb']?.toString() ?? 'assets/images/logo.png', // null일 경우 기본 이미지 경로
+      category: json['category'] ?? 'general',
+      writer: json['writer'] ?? 'anonymous',
+      visitCount: json['visitcount'] ?? 0,
+      role: json['role'] ?? 'viewer',
+      popupFee: json['popup_fee'] ?? 0,
+      likesCount: json['likes_count'] ?? 0,
+      openDays: json['open_days'] ?? 'all',
+      openHours: json['open_hours'] ?? '00:00-23:59',
+      liked: json['liked'] ?? false,
     );
   }
 }
