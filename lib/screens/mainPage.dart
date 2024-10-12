@@ -134,6 +134,7 @@ class _HomeTabState extends State<HomeTab> {
                   ),
                 ),
               ),
+              // 메인에 보이는 팝업 리스트
               PopupBoardWidget(),
             ],
           ),

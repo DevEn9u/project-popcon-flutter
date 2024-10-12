@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import 'package:http/http.dart' as http;
-import 'package:project_popcon_flutter/screens/popup_board_view.dart';
 import 'package:project_popcon_flutter/widgets/custom_drawer.dart';
 import 'package:project_popcon_flutter/widgets/popup_board_widget.dart';
 

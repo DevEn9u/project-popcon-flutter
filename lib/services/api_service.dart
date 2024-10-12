@@ -140,6 +140,7 @@ class ApiService {
     try {
       final response = await http.get(url);
       print('API 응답 데이터: $response');
+      
 
       if (response.statusCode == 200) {
         // 서버에서 받은 JSON 데이터를 리스트로 변환
