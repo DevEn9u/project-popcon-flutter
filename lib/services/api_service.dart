@@ -5,6 +5,7 @@ import 'package:project_popcon_flutter/models/popupboard_dto.dart';
 import '../models/board_dto.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:project_popcon_flutter/models/popupboard_dto.dart';
 import 'package:flutter/material.dart';
 import '../models/comment_dto.dart'; // 추가
 import '../models/image_dto.dart'; // 필요 시 추가
@@ -140,7 +141,6 @@ class ApiService {
     try {
       final response = await http.get(url);
       print('API 응답 데이터: $response');
-      
 
       if (response.statusCode == 200) {
         // 서버에서 받은 JSON 데이터를 리스트로 변환
@@ -150,7 +150,9 @@ class ApiService {
         // thumb 필드가 null인 항목을 필터링
         List<PopupboardDTO> popupList = jsonData
             .map((item) => PopupboardDTO.fromJson(item))
-            .where((popup) => popup.thumb != null && popup.thumb!.isNotEmpty) // thumb가 null 또는 빈 문자열인 항목을 필터링
+            .where((popup) =>
+                popup.thumb != null &&
+                popup.thumb!.isNotEmpty) // thumb가 null 또는 빈 문자열인 항목을 필터링
             .toList();
 
         return popupList;
@@ -163,10 +165,51 @@ class ApiService {
     }
   }
 
+  // 팝업 게시글 목록 조회
+  Future<List<PopupboardDTO>> getPopupBoardList() async {
+    final String url = '/api/popupBoard/list';
+
+    try {
+      final response = await _dio.get(url);
+
+      if (response.statusCode == 200) {
+        List<dynamic> data = response.data;
+        return data
+            .map((popupJson) => PopupboardDTO.fromJson(popupJson))
+            .toList();
+      } else {
+        throw Exception('팝업 게시글 목록을 불러오는 데 실패했습니다.');
+      }
+    } catch (e) {
+      throw Exception('팝업 게시글 목록을 불러오는 데 실패했습니다. Error: $e');
+    }
+  }
+
+  // 팝업 게시글 상세 조회
+  Future<PopupboardDTO> getPopupBoardDetail(String boardIdx) async {
+    final String url = '/api/popupBoard/$boardIdx';
+
+    try {
+      final response = await _dio.get(url);
+
+      if (response.statusCode == 200) {
+        Map<String, dynamic> data = response.data;
+        return PopupboardDTO.fromJson(data);
+      } else if (response.statusCode == 404) {
+        throw Exception('게시글을 찾을 수 없습니다.');
+      } else {
+        try {
+          Map<String, dynamic> errorResponse = response.data;
+          String message = errorResponse['message'] ?? '게시글을 불러오는 데 실패했습니다.';
+          throw Exception(message);
+        } catch (_) {
+          throw Exception('게시글을 불러오는 데 실패했습니다.');
+        }
+      }
+    } catch (e) {
+      throw Exception('게시글을 불러오는 데 실패했습니다. Error: $e');
+    }
+  }
 
   // 기타 API 메서드 추가 가능
 }
-
-
-
-

@@ -1,3 +1,6 @@
+import 'comment_dto.dart';
+import 'image_dto.dart';
+
 class PopupboardDTO {
   final String boardIdx;
   final String boardTitle;
@@ -17,6 +20,10 @@ class PopupboardDTO {
   final String openHours;
   final bool liked;
 
+  final List<ImageDTO> images;
+  final List<CommentDTO> comments;
+  final String writerName;
+
   PopupboardDTO({
     required this.boardIdx,
     required this.boardTitle,
@@ -35,18 +42,33 @@ class PopupboardDTO {
     required this.openDays,
     required this.openHours,
     required this.liked,
+    required this.images,
+    required this.comments,
+    required this.writerName,
   });
 
   factory PopupboardDTO.fromJson(Map<String, dynamic> json) {
+    var imagesFromJson = json['images'] as List<dynamic>? ?? [];
+    List<ImageDTO> imageList = imagesFromJson
+        .map((imageJson) => ImageDTO.fromJson(imageJson))
+        .toList();
+
+    var commentsFromJson = json['comments'] as List<dynamic>? ?? [];
+    List<CommentDTO> commentList = commentsFromJson
+        .map((commentJson) => CommentDTO.fromJson(commentJson))
+        .toList();
+
     return PopupboardDTO(
       boardIdx: json['board_idx'] ?? 'default_idx', // 기본값 설정
       boardTitle: json['board_title'] ?? 'Untitled',
-      postDate: DateTime.tryParse(json['postdate'] ?? '') ?? DateTime.now(), // 기본값 또는 현재 날짜
+      postDate: DateTime.tryParse(json['postdate'] ?? '') ??
+          DateTime.now(), // 기본값 또는 현재 날짜
       endDate: json['end_date'] ?? 'unknown',
       startDate: json['start_date'] ?? 'unknown',
       contents: json['contents'] ?? '',
       popupAddr: json['popup_addr'] ?? '',
-      thumb: json['thumb']?.toString() ?? 'assets/images/logo.png', // null일 경우 기본 이미지 경로
+      thumb: json['thumb']?.toString() ??
+          'assets/images/logo.png', // null일 경우 기본 이미지 경로
       category: json['category'] ?? 'general',
       writer: json['writer'] ?? 'anonymous',
       visitCount: json['visitcount'] ?? 0,
@@ -56,6 +78,9 @@ class PopupboardDTO {
       openDays: json['open_days'] ?? 'all',
       openHours: json['open_hours'] ?? '00:00-23:59',
       liked: json['liked'] ?? false,
+      images: imageList,
+      comments: commentList,
+      writerName: json['writerName'] ?? '알 수 없음',
     );
   }
 }

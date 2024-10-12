@@ -1,35 +1,33 @@
+// lib/widgets/popup_board_widget.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:project_popcon_flutter/screens/popup_board_view.dart';
+import '../models/popupboard_dto.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class PopupBoardWidget extends StatelessWidget {
-  const PopupBoardWidget({super.key});
+  final List<PopupboardDTO> popups;
 
-  // API로 불러올 데이터 전 사용할 더미데이터
-  static const List<Map<String, String>> popupData = [
-    {
-      "title": "쿼카 앤 보보 인 더 우드 팝업스토어",
-      "location": "서울특별시 성동구",
-      "date": "24.10.24 - 24.11.06",
-      "image": "assets/images/popup_image1.jfif",
-    },
-    {
-      "title": "벨리곰 X LH <LH 곰in중개사> 팝업스토어",
-      "location": "서울특별시 영등포구",
-      "date": "24.10.24 - 24.11.06",
-      "image": "assets/images/popup_image4.jfif",
-    },
-  ];
+  const PopupBoardWidget({Key? key, required this.popups}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // 카드 생성
+    if (popups.isEmpty) {
+      return Center(
+        child: Text(
+          '진행중인 팝업이 없습니다.',
+          style: TextStyle(color: Colors.white),
+        ),
+      );
+    }
+
     return ListView.builder(
-      // physics: const NeverScrollableScrollPhysics(), // 스크롤 비활성화
-      shrinkWrap: true, // 부모 위젯의 크기에 맞춰서 조정
-      itemCount: popupData.length,
+      shrinkWrap: true,
+      physics: NeverScrollableScrollPhysics(),
+      itemCount: popups.length,
       itemBuilder: (context, index) {
-        final popup = popupData[index];
+        final popup = popups[index];
         return Column(
           children: [
             Card(
@@ -43,20 +41,35 @@ class PopupBoardWidget extends StatelessWidget {
                   children: [
                     InkWell(
                       onTap: () {
-                        // 상세보기 페이지로 이동
+                        // 상세보기 페이지로 이동, boardIdx 전달
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => PopupBoardView()),
+                            builder: (context) =>
+                                PopupBoardView(boardIdx: popup.boardIdx),
+                          ),
                         );
                       },
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(14.0),
-                        child: Image.asset(
-                          popup['image']!,
-                          width: 142,
-                          height: 142,
-                        ),
+                        child: popup.thumb != null && popup.thumb!.isNotEmpty
+                            ? CachedNetworkImage(
+                                imageUrl:
+                                    'http://10.0.2.2:8080${popup.thumb}', // baseUrl에 맞게 수정
+                                width: 142,
+                                height: 142,
+                                fit: BoxFit.cover,
+                                placeholder: (context, url) =>
+                                    Center(child: CircularProgressIndicator()),
+                                errorWidget: (context, url, error) =>
+                                    Icon(Icons.broken_image, size: 50),
+                              )
+                            : Image.asset(
+                                'assets/images/logo.png',
+                                width: 142,
+                                height: 142,
+                                fit: BoxFit.cover,
+                              ),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -65,7 +78,7 @@ class PopupBoardWidget extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            popup['title']!,
+                            popup.boardTitle,
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -82,7 +95,7 @@ class PopupBoardWidget extends StatelessWidget {
                               ),
                               const SizedBox(width: 2),
                               Text(
-                                popup['location']!,
+                                popup.popupAddr,
                                 style: const TextStyle(
                                     fontSize: 12, color: Colors.grey),
                               ),
@@ -93,7 +106,7 @@ class PopupBoardWidget extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
                               Text(
-                                popup['date']!,
+                                '${popup.startDate} - ${popup.endDate}',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
