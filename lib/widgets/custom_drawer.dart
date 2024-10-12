@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:project_popcon_flutter/screens/free_board_list.dart';
+import 'package:project_popcon_flutter/screens/popup_board_list.dart';
 
 class CustomDrawer extends StatefulWidget {
   const CustomDrawer({super.key});
@@ -60,7 +62,11 @@ class _CustomDrawerState extends State<CustomDrawer> {
                 title:
                     const Text('팝업게시판', style: TextStyle(color: Colors.white)),
                 onTap: () {
-                  Navigator.pop(context);
+                  Navigator.pop(context); // 드로어 닫기
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => PopupBoardList()),
+                  );
                 },
               ),
               ListTile(
@@ -71,7 +77,11 @@ class _CustomDrawerState extends State<CustomDrawer> {
                 title:
                     const Text('자유게시판', style: TextStyle(color: Colors.white)),
                 onTap: () {
-                  Navigator.pop(context);
+                  Navigator.pop(context); // 드로어 닫기
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => FreeBoardList()),
+                  );
                 },
               ),
             ],

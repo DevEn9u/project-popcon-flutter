@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
-import '../models/board_dto.dart';
+import 'package:provider/provider.dart';
+import 'package:project_popcon_flutter/widgets/custom_drawer.dart';
 import '../services/api_service.dart';
+import '../models/board_dto.dart';
 import 'free_board_view.dart';
 
 class FreeBoardList extends StatefulWidget {
+  const FreeBoardList({Key? key}) : super(key: key);
+
   @override
   _FreeBoardListState createState() => _FreeBoardListState();
 }
@@ -21,7 +25,8 @@ class _FreeBoardListState extends State<FreeBoardList> {
   @override
   void initState() {
     super.initState();
-    apiService = ApiService(baseUrl: 'http://10.0.2.2:8080'); // 에뮬레이터용
+    // Provider를 통해 ApiService를 가져옵니다.
+    apiService = Provider.of<ApiService>(context, listen: false);
     fetchBoards();
 
     _scrollController.addListener(() {
@@ -92,9 +97,13 @@ class _FreeBoardListState extends State<FreeBoardList> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('자유게시판'),
+        title: Image.asset(
+          'assets/images/logo.png',
+          height: 30,
+        ),
         backgroundColor: Color(0xFF121212),
       ),
+      endDrawer: const CustomDrawer(),
       body: RefreshIndicator(
         onRefresh: refreshBoards,
         child: boards.isEmpty
@@ -107,52 +116,89 @@ class _FreeBoardListState extends State<FreeBoardList> {
                     : Center(
                         child: Text('게시글이 없습니다.',
                             style: TextStyle(color: Colors.white)))
-            : ListView.builder(
-                controller: _scrollController,
-                itemCount: boards.length + (hasMore ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (index < boards.length) {
-                    BoardDTO board = boards[index];
-                    return Card(
-                      color: Color(0xFF1e1e1e),
-                      margin: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      child: ListTile(
-                        title: Text(
-                          board.boardTitle,
-                          style: TextStyle(
-                              color: Colors.white, fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Text(
-                          "${board.writerName} • ${formatDate(board.postDate)} • 조회수: ${board.visitCount}",
-                          style: TextStyle(color: Colors.white70),
-                        ),
-                        trailing: Icon(Icons.arrow_forward_ios,
-                            color: Colors.white70),
-                        onTap: () {
-                          // 게시글 클릭 시 boardIdx 로그 출력
-                          print('게시글 클릭됨: boardIdx = ${board.boardIdx}');
-
-                          // 상세보기로 이동
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => FreeBoardView(
-                                boardIdx: board.boardIdx,
+            : SingleChildScrollView(
+                physics: AlwaysScrollableScrollPhysics(),
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 20.0),
+                  color: Color(0xFF121212),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Divider(color: Colors.grey),
+                      Container(
+                        alignment: Alignment.centerLeft,
+                        child: RichText(
+                          text: TextSpan(
+                            children: const [
+                              TextSpan(
+                                text: "자유게시판",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24.0,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
-                          );
+                            ],
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 10),
+                      ListView.builder(
+                        controller: _scrollController,
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        itemCount: boards.length + (hasMore ? 1 : 0),
+                        itemBuilder: (context, index) {
+                          if (index < boards.length) {
+                            BoardDTO board = boards[index];
+                            return Card(
+                              color: Color(0xFF1e1e1e),
+                              margin: EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 5),
+                              child: ListTile(
+                                title: Text(
+                                  board.boardTitle,
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                subtitle: Text(
+                                  "${board.writerName} • ${formatDate(board.postDate)} • 조회수: ${board.visitCount}",
+                                  style: TextStyle(color: Colors.white70),
+                                ),
+                                trailing: Icon(Icons.arrow_forward_ios,
+                                    color: Colors.white70),
+                                onTap: () {
+                                  // 게시글 클릭 시 boardIdx 로그 출력
+                                  print(
+                                      '게시글 클릭됨: boardIdx = ${board.boardIdx}');
+
+                                  // 상세보기로 이동
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => FreeBoardView(
+                                        boardIdx: board.boardIdx,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            );
+                          } else {
+                            return Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 16.0),
+                              child: Center(
+                                child: CircularProgressIndicator(),
+                              ),
+                            );
+                          }
                         },
                       ),
-                    );
-                  } else {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16.0),
-                      child: Center(
-                        child: CircularProgressIndicator(),
-                      ),
-                    );
-                  }
-                },
+                    ],
+                  ),
+                ),
               ),
       ),
     );

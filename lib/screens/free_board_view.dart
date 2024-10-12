@@ -37,8 +37,14 @@ class _FreeBoardViewState extends State<FreeBoardView> {
     final String baseUrl = apiService.baseUrl;
 
     return Scaffold(
+      backgroundColor: Color(0xFF121212), // Scaffold 배경색 설정
       appBar: AppBar(
-        title: Text('게시글 상세보기'),
+        title: Text(
+          '게시글 상세보기',
+          style: TextStyle(color: Colors.white),
+        ),
+        backgroundColor: Color(0xFF121212), // AppBar 배경색 설정
+        iconTheme: IconThemeData(color: Colors.white), // AppBar 아이콘 색상 설정
       ),
       body: FutureBuilder<BoardDTO>(
         future: _boardFuture,
@@ -48,10 +54,20 @@ class _FreeBoardViewState extends State<FreeBoardView> {
             return Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             // 오류 상태
-            return Center(child: Text('오류: ${snapshot.error}'));
+            return Center(
+              child: Text(
+                '오류: ${snapshot.error}',
+                style: TextStyle(color: Colors.white),
+              ),
+            );
           } else if (!snapshot.hasData) {
             // 데이터 없음
-            return Center(child: Text('게시글을 찾을 수 없습니다.'));
+            return Center(
+              child: Text(
+                '게시글을 찾을 수 없습니다.',
+                style: TextStyle(color: Colors.white),
+              ),
+            );
           } else {
             // 성공적으로 데이터 로드
             BoardDTO board = snapshot.data!;
@@ -63,19 +79,28 @@ class _FreeBoardViewState extends State<FreeBoardView> {
                   // 게시글 제목
                   Text(
                     board.boardTitle,
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white, // 텍스트 색상 설정
+                    ),
                   ),
                   SizedBox(height: 8),
                   // 작성자 정보 및 조회수
                   Text(
                     '작성자: ${board.writerName} | 작성일: ${board.postDate.toLocal().toString().split(' ')[0]} | 조회수: ${board.visitCount}',
-                    style: TextStyle(color: Colors.grey),
+                    style: TextStyle(
+                      color: Colors.grey, // 텍스트 색상 설정
+                    ),
                   ),
                   SizedBox(height: 16),
                   // 게시글 내용
                   Text(
                     board.contents,
-                    style: TextStyle(fontSize: 16),
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white, // 텍스트 색상 설정
+                    ),
                   ),
                   SizedBox(height: 16),
                   // 이미지 섹션
@@ -86,7 +111,10 @@ class _FreeBoardViewState extends State<FreeBoardView> {
                             Text(
                               '관련 이미지',
                               style: TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.bold),
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white, // 텍스트 색상 설정
+                              ),
                             ),
                             SizedBox(height: 8),
                             ListView.builder(
@@ -105,8 +133,10 @@ class _FreeBoardViewState extends State<FreeBoardView> {
                                     fit: BoxFit.cover,
                                     placeholder: (context, url) => Center(
                                         child: CircularProgressIndicator()),
-                                    errorWidget: (context, url, error) =>
-                                        Icon(Icons.broken_image, size: 50),
+                                    errorWidget: (context, url, error) => Icon(
+                                        Icons.broken_image,
+                                        size: 50,
+                                        color: Colors.white70),
                                   ),
                                 );
                               },
@@ -123,7 +153,10 @@ class _FreeBoardViewState extends State<FreeBoardView> {
                             Text(
                               '댓글',
                               style: TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.bold),
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white, // 텍스트 색상 설정
+                              ),
                             ),
                             SizedBox(height: 8),
                             ListView.builder(
@@ -133,6 +166,7 @@ class _FreeBoardViewState extends State<FreeBoardView> {
                               itemBuilder: (context, index) {
                                 CommentDTO comment = board.comments[index];
                                 return Card(
+                                  color: Color(0xFF1e1e1e), // 카드 배경색 설정
                                   margin: EdgeInsets.symmetric(vertical: 4.0),
                                   child: Padding(
                                     padding: EdgeInsets.all(8.0),
@@ -148,12 +182,16 @@ class _FreeBoardViewState extends State<FreeBoardView> {
                                             Text(
                                               comment.comWriterName,
                                               style: TextStyle(
-                                                  fontWeight: FontWeight.bold),
+                                                fontWeight: FontWeight.bold,
+                                                color:
+                                                    Colors.white, // 텍스트 색상 설정
+                                              ),
                                             ),
                                             Text(
                                               comment.getFormattedPostDate(),
-                                              style:
-                                                  TextStyle(color: Colors.grey),
+                                              style: TextStyle(
+                                                color: Colors.grey, // 텍스트 색상 설정
+                                              ),
                                             ),
                                           ],
                                         ),
@@ -181,9 +219,10 @@ class _FreeBoardViewState extends State<FreeBoardView> {
                                                       errorWidget: (context,
                                                               url, error) =>
                                                           Icon(
-                                                              Icons
-                                                                  .broken_image,
-                                                              size: 50),
+                                                        Icons.broken_image,
+                                                        size: 50,
+                                                        color: Colors.white70,
+                                                      ),
                                                     ),
                                                   );
                                                 }).toList(),
@@ -191,7 +230,12 @@ class _FreeBoardViewState extends State<FreeBoardView> {
                                             : SizedBox(),
                                         SizedBox(height: 4),
                                         // 댓글 내용
-                                        Text(comment.comContents),
+                                        Text(
+                                          comment.comContents,
+                                          style: TextStyle(
+                                            color: Colors.white, // 텍스트 색상 설정
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -200,7 +244,10 @@ class _FreeBoardViewState extends State<FreeBoardView> {
                             ),
                           ],
                         )
-                      : Text('댓글이 없습니다.'),
+                      : Text(
+                          '댓글이 없습니다.',
+                          style: TextStyle(color: Colors.white), // 텍스트 색상 설정
+                        ),
                   SizedBox(height: 16),
                   // 댓글 작성 기능은 생략
                 ],
