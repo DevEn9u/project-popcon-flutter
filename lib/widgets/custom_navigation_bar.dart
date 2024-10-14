@@ -7,8 +7,11 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
+import 'package:project_popcon_flutter/models/popupboard_dto.dart';
 import 'package:project_popcon_flutter/screens/free_board_list.dart';
 import 'package:project_popcon_flutter/screens/popup_board_list.dart';
+import 'package:project_popcon_flutter/widgets/popup_board_widget.dart';
+import 'package:provider/provider.dart';
 import '../screens/mainPage.dart';
 import 'package:project_popcon_flutter/services/api_service.dart';
 import 'package:http/http.dart' as http;
@@ -120,6 +123,9 @@ class _NearPopupTabState extends State<NearPopupTab> {
   List<Marker> _markers = [];
   final Random _random = Random();
 
+  // 팝업 리스트를 가져오는 Future
+  late Future<List<PopupboardDTO>> _popupListFuture;
+
   // 현재 위치 가져오기 및 위치 변경시 호출
   void getCurrentLocation() async {
     await Permission.location.request().then((status) {
@@ -144,6 +150,11 @@ class _NearPopupTabState extends State<NearPopupTab> {
 
     markerAdd(); // 현재 위치에 마커 추가
     // fetchNearbyPopups(); // 주변 팝업 API 호출
+
+    // 팝업 리스트를 가져오는 Future를 다시 할당하여 업데이트
+    setState(() {
+      _popupListFuture = fetchPopupList(); // 위치 변경 시 팝업 리스트 다시 가져오기
+    });
   }
 
   // 사용자 정의 마커 세팅
@@ -152,6 +163,12 @@ class _NearPopupTabState extends State<NearPopupTab> {
     customMarker = await BitmapDescriptor.fromAssetImage(
         const ImageConfiguration(size: Size(48, 48)),
         'assets/images/marker4.png');
+  }
+
+  // 팝업 리스트를 가져오는 메서드
+  Future<List<PopupboardDTO>> fetchPopupList() async {
+    final apiService = Provider.of<ApiService>(context, listen: false);
+    return await apiService.getPopupBoardList(); // 실제 API 호출
   }
 
   // API를 호출하여 주변 팝업데이터 가져오는 함수
@@ -193,19 +210,22 @@ class _NearPopupTabState extends State<NearPopupTab> {
   void initState() {
     super.initState();
 
-    setCustomMarker().then((value) {
+    _popupListFuture = setCustomMarker().then((_) {
       getCurrentLocation();
+      return fetchPopupList();
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
         backgroundColor: const Color(0xFF121212),
         title: const Text("내주변팝업", style: TextStyle(color: Colors.white)),
       ),
-      body: Center(
+      body: SingleChildScrollView(
+        // 스크롤 가능하도록 변경
         child: Column(
           children: [
             Container(
@@ -222,6 +242,30 @@ class _NearPopupTabState extends State<NearPopupTab> {
                 },
                 markers: Set.from(_markers), // 마커들
               ),
+            ),
+            // PopupBoardWidget 추가 (FutureBuilder 사용)
+            FutureBuilder<List<PopupboardDTO>>(
+              future: _popupListFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator()); // 로딩 중
+                } else if (snapshot.hasError) {
+                  return Center(
+                      child: Text(
+                    'Error: ${snapshot.error}',
+                    style: TextStyle(color: Colors.white),
+                  )); // 오류 발생 시
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return Center(
+                      child: Text(
+                    '주변에 팝업이 없습니다.',
+                    style: TextStyle(color: Colors.white),
+                  )); // 데이터 없음
+                } else {
+                  List<PopupboardDTO> popupList = snapshot.data!;
+                  return PopupBoardWidget(popups: popupList);
+                }
+              },
             ),
           ],
         ),

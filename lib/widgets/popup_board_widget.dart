@@ -86,7 +86,7 @@ class PopupBoardWidget extends StatelessWidget {
                             ),
                           ),
                           Row(
-                            crossAxisAlignment: CrossAxisAlignment.end,
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               SvgPicture.asset(
                                 "assets/images/location_icon.svg",
@@ -94,10 +94,16 @@ class PopupBoardWidget extends StatelessWidget {
                                 height: 14,
                               ),
                               const SizedBox(width: 2),
-                              Text(
-                                popup.popupAddr,
-                                style: const TextStyle(
-                                    fontSize: 12, color: Colors.grey),
+                              Flexible(
+                                child: Text(
+                                  popup.popupAddr,
+                                  style: const TextStyle(
+                                      fontSize: 12, color: Colors.grey),
+                                  softWrap: true,
+                                  maxLines: 2, // 최대 2줄로 제한
+                                  overflow: TextOverflow
+                                      .ellipsis, // 넘치는 텍스트는 말줄임표로 표시
+                                ),
                               ),
                             ],
                           ),
