@@ -1,28 +1,63 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
-import 'package:dio_cookie_manager/dio_cookie_manager.dart';
-import 'package:cookie_jar/cookie_jar.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:project_popcon_flutter/models/popupboard_dto.dart';
 import '../models/board_dto.dart';
-import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:project_popcon_flutter/models/popupboard_dto.dart';
-import 'package:flutter/material.dart';
 import '../models/comment_dto.dart'; // 추가
 import '../models/image_dto.dart'; // 필요 시 추가
 
 class ApiService {
-  final Dio _dio;
-  final String baseUrl;
+  static final ApiService _instance = ApiService._internal();
+  late Dio _dio;
+  final String baseUrl = 'http://10.0.2.2:8080'; // 실제 기기 테스트 시 IP 주소로 변경
+  final FlutterSecureStorage _secureStorage = FlutterSecureStorage();
+  String? _token;
 
-  ApiService({required this.baseUrl}) : _dio = Dio() {
-    // 쿠키 매니저 설정
-    _dio.interceptors.add(CookieManager(CookieJar()));
+  factory ApiService({required String baseUrl}) {
+    return _instance;
+  }
+
+  ApiService._internal() {
+    _dio = Dio();
+
+    // 요청/응답 인터셉터 추가
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          // JWT 토큰 설정 (JWT 기반 인증용)
+          _token = await _secureStorage.read(key: 'jwt_token');
+          if (_token != null) {
+            options.headers['Authorization'] = 'Bearer $_token';
+          }
+          print('요청 URL: ${options.uri}');
+          print('요청 헤더: ${options.headers}');
+          return handler.next(options);
+        },
+        onResponse: (response, handler) {
+          print('응답 상태 코드: ${response.statusCode}');
+          print('응답 데이터: ${response.data}');
+          return handler.next(response);
+        },
+        onError: (DioError e, handler) {
+          print('에러 발생: ${e.message}');
+          if (e.response != null) {
+            print('에러 응답 데이터: ${e.response?.data}');
+            print('에러 상태 코드: ${e.response?.statusCode}');
+          }
+          return handler.next(e);
+        },
+      ),
+    );
+
     // 기본 옵션 설정
     _dio.options.baseUrl = baseUrl;
     _dio.options.connectTimeout = Duration(seconds: 5); // 5초
     _dio.options.receiveTimeout = Duration(seconds: 3); // 3초
     _dio.options.headers['Content-Type'] = 'application/json';
   }
+
+  static ApiService get instance => _instance;
 
   // 백엔드의 /api/test 엔드포인트에 GET 요청을 보내 연결 테스트
   Future<String> testConnection() async {
@@ -57,11 +92,11 @@ class ApiService {
     }
   }
 
-  // 로그인 요청
-  Future<Map<String, dynamic>> login(String id, String password) async {
+  // JWT 기반 로그인 요청
+  Future<Map<String, dynamic>> jwtLogin(String id, String password) async {
     try {
       final response = await _dio.post(
-        '/api/members/login',
+        '/api/auth/login',
         data: {
           'id': id,
           'password': password,
@@ -69,9 +104,11 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
+        String token = response.data['token'];
+        await _secureStorage.write(key: 'jwt_token', value: token);
+        print('JWT 로그인 성공: $token');
         return response.data;
       } else if (response.statusCode == 401) {
-        // 서버에서 전달한 오류 메시지를 파싱
         final Map<String, dynamic> errorResponse = response.data;
         throw Exception(errorResponse['message'] ?? '인증에 실패했습니다.');
       } else if (response.statusCode == 400) {
@@ -83,6 +120,12 @@ class ApiService {
     } catch (e) {
       throw Exception('로그인에 실패했습니다. Error: $e');
     }
+  }
+
+  // 로그아웃 요청 (JWT 기반)
+  Future<void> logout() async {
+    await _secureStorage.delete(key: 'jwt_token');
+    // 추가적으로 서버 로그아웃 엔드포인트가 있다면 호출
   }
 
   // 자유게시판 목록 조회
@@ -208,6 +251,24 @@ class ApiService {
       }
     } catch (e) {
       throw Exception('게시글을 불러오는 데 실패했습니다. Error: $e');
+    }
+  }
+
+  // 사용자가 좋아요한 팝업 목록을 가져오는 메서드
+  Future<List<PopupboardDTO>> getLikedPopups() async {
+    try {
+      final response = await _dio.get('/api/likes/mypopups');
+
+      if (response.statusCode == 200) {
+        List<dynamic> data = response.data;
+        return data.map((json) => PopupboardDTO.fromJson(json)).toList();
+      } else if (response.statusCode == 401) {
+        throw Exception('로그인이 필요합니다.');
+      } else {
+        throw Exception('좋아요한 팝업을 가져오는 데 실패했습니다.');
+      }
+    } catch (e) {
+      throw Exception('좋아요한 팝업을 가져오는 데 실패했습니다. Error: $e');
     }
   }
 

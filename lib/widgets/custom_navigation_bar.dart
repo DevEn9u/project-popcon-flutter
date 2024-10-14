@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -10,6 +11,7 @@ import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:project_popcon_flutter/models/popupboard_dto.dart';
 import 'package:project_popcon_flutter/screens/free_board_list.dart';
 import 'package:project_popcon_flutter/screens/popup_board_list.dart';
+import 'package:project_popcon_flutter/widgets/liked_popup_widget.dart';
 import 'package:project_popcon_flutter/widgets/popup_board_widget.dart';
 import 'package:provider/provider.dart';
 import '../screens/mainPage.dart';
@@ -341,7 +343,7 @@ class _NearPopupTabState extends State<NearPopupTab> {
   }
 }
 
-// LoginTab을 StatefulWidget으로 수정하여 API 호출 테스트 구현
+// LoginTab
 class LoginTab extends StatefulWidget {
   const LoginTab({Key? key}) : super(key: key);
 
@@ -350,7 +352,7 @@ class LoginTab extends StatefulWidget {
 }
 
 class _LoginTabState extends State<LoginTab> {
-  late ApiService apiService;
+  final ApiService apiService = ApiService.instance;
   Map<String, dynamic>? memberData;
   bool isLoading = false;
   String? errorMessage;
@@ -358,18 +360,17 @@ class _LoginTabState extends State<LoginTab> {
   final TextEditingController _idController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
+  // 좋아요한 팝업 목록을 저장할 변수
+  Future<List<PopupboardDTO>>? _likedPopupsFuture;
+
   @override
-  void initState() {
-    super.initState();
-    // 백엔드 서버의 IP 주소를 설정합니다.
-    // 에뮬레이터 사용 시, Android는 10.0.2.2, iOS는 localhost 또는 Mac의 IP 주소
-    apiService =
-        ApiService(baseUrl: 'http://10.0.2.2:8080'); // Android 에뮬레이터 예시
-    // 실제 기기에서 테스트할 경우, 서버의 로컬 네트워크 IP 주소를 사용
-    // 예: 'http://192.168.1.100:8080'
+  void dispose() {
+    _idController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
-  Future<void> performLogin() async {
+  Future<void> performJwtLogin() async {
     String id = _idController.text.trim();
     String password = _passwordController.text.trim();
 
@@ -384,15 +385,17 @@ class _LoginTabState extends State<LoginTab> {
       isLoading = true;
       errorMessage = null;
       memberData = null;
+      _likedPopupsFuture = null;
     });
 
     try {
-      Map<String, dynamic> data = await apiService.login(id, password);
+      Map<String, dynamic> data = await apiService.jwtLogin(id, password);
+      print('로그인 성공: $data'); // 로그인 성공 시 데이터 출력
       setState(() {
-        memberData = data;
+        memberData = data['user'];
+        // 로그인 성공 시 좋아요한 팝업 목록을 가져옵니다.
+        _likedPopupsFuture = apiService.getLikedPopups();
       });
-      // 로그인 성공 후, 필요한 추가 작업을 여기에 추가할 수 있습니다.
-      // 예: 토큰 저장, 사용자 상태 업데이트 등
     } catch (e) {
       setState(() {
         errorMessage = e.toString().replaceFirst('Exception: ', '');
@@ -404,21 +407,16 @@ class _LoginTabState extends State<LoginTab> {
     }
   }
 
-  // 로그아웃 기능 추가 (옵션)
-  void performLogout() {
+  // 로그아웃 기능 추가
+  void performLogout() async {
+    await apiService.logout(); // JWT 토큰 삭제
     setState(() {
       memberData = null;
+      _likedPopupsFuture = null;
       _idController.clear();
       _passwordController.clear();
       errorMessage = null;
     });
-  }
-
-  @override
-  void dispose() {
-    _idController.dispose();
-    _passwordController.dispose();
-    super.dispose();
   }
 
   @override
@@ -464,9 +462,9 @@ class _LoginTabState extends State<LoginTab> {
                         obscureText: true,
                       ),
                       SizedBox(height: 20),
-                      // 로그인 버튼
+                      // JWT 로그인 버튼
                       ElevatedButton(
-                        onPressed: isLoading ? null : performLogin,
+                        onPressed: isLoading ? null : performJwtLogin,
                         child: Text('로그인'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Color(0xFFf0002e),
@@ -479,85 +477,94 @@ class _LoginTabState extends State<LoginTab> {
                       if (isLoading) CircularProgressIndicator(),
                       // 오류 메시지 표시
                       if (errorMessage != null)
-                        Text(
-                          errorMessage!,
-                          style: TextStyle(color: Colors.red, fontSize: 16),
+                        GestureDetector(
+                          onLongPress: () {
+                            // 오류 메시지를 클립보드에 복사
+                            Clipboard.setData(
+                              ClipboardData(text: errorMessage!),
+                            );
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('오류 메시지가 복사되었습니다.')),
+                            );
+                          },
+                          child: SelectableText(
+                            errorMessage!,
+                            style: TextStyle(color: Colors.red, fontSize: 16),
+                            textAlign: TextAlign.center,
+                          ),
                         ),
                     ],
                   )
                 : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
+                      // 마이페이지: 환영 메시지 표시
                       Text(
-                        "로그인 성공!",
+                        "환영합니다, ${memberData!['name']}님!",
                         style: TextStyle(
-                            color: Colors.green,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold),
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
                       SizedBox(height: 20),
-                      // 로그인된 회원 정보 표시
-                      Container(
-                        padding: EdgeInsets.all(16.0),
-                        decoration: BoxDecoration(
-                          color: Color(0xFF1e1e1e),
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "ID: ${memberData!['id']}",
-                              style:
-                                  TextStyle(color: Colors.white, fontSize: 18),
+                      // 좋아요한 팝업 목록 표시
+                      _likedPopupsFuture == null
+                          ? CircularProgressIndicator()
+                          : FutureBuilder<List<PopupboardDTO>>(
+                              future: _likedPopupsFuture,
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return Center(
+                                      child:
+                                          CircularProgressIndicator()); // 로딩 중
+                                } else if (snapshot.hasError) {
+                                  return Center(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: GestureDetector(
+                                        onLongPress: () {
+                                          // 오류 메시지를 클립보드에 복사
+                                          Clipboard.setData(
+                                            ClipboardData(
+                                              text:
+                                                  '좋아요한 팝업을 가져오는 데 실패했습니다:\n${snapshot.error}',
+                                            ),
+                                          );
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                                content:
+                                                    Text('오류 메시지가 복사되었습니다.')),
+                                          );
+                                        },
+                                        child: SelectableText(
+                                          '좋아요한 팝업을 가져오는 데 실패했습니다:\n${snapshot.error}',
+                                          style: TextStyle(color: Colors.red),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                } else if (!snapshot.hasData ||
+                                    snapshot.data!.isEmpty) {
+                                  return Center(
+                                    child: Text(
+                                      '좋아요한 팝업이 없습니다.',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  );
+                                } else {
+                                  List<PopupboardDTO> likedPopups =
+                                      snapshot.data!;
+                                  return LikedPopupWidget(popups: likedPopups);
+                                }
+                              },
                             ),
-                            SizedBox(height: 8),
-                            Text(
-                              "이름: ${memberData!['name']}",
-                              style:
-                                  TextStyle(color: Colors.white, fontSize: 18),
-                            ),
-                            SizedBox(height: 8),
-                            Text(
-                              "이메일: ${memberData!['email']}",
-                              style:
-                                  TextStyle(color: Colors.white, fontSize: 18),
-                            ),
-                            SizedBox(height: 8),
-                            Text(
-                              "전화번호: ${memberData!['phone']}",
-                              style:
-                                  TextStyle(color: Colors.white, fontSize: 18),
-                            ),
-                            SizedBox(height: 8),
-                            Text(
-                              "권한: ${memberData!['authority']}",
-                              style:
-                                  TextStyle(color: Colors.white, fontSize: 18),
-                            ),
-                            SizedBox(height: 8),
-                            Text(
-                              "포인트: ${memberData!['point']}",
-                              style:
-                                  TextStyle(color: Colors.white, fontSize: 18),
-                            ),
-                            SizedBox(height: 8),
-                            Text(
-                              "사업자 번호: ${memberData!['business_number'] ?? 'N/A'}",
-                              style:
-                                  TextStyle(color: Colors.white, fontSize: 18),
-                            ),
-                            SizedBox(height: 8),
-                            Text(
-                              "활성화 여부: ${memberData!['enabled'] == 1 ? '활성화' : '비활성화'}",
-                              style:
-                                  TextStyle(color: Colors.white, fontSize: 18),
-                            ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(height: 20),
-                      // 로그아웃 버튼 (옵션)
+                      SizedBox(height: 40),
+                      // 로그아웃 버튼
                       ElevatedButton(
                         onPressed: performLogout,
                         child: Text('로그아웃'),

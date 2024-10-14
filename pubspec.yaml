@@ -1,6 +1,6 @@
 name: project_popcon_flutter
-description: 'A new Flutter project.'
-publish_to: 'none'
+description: "A new Flutter project."
+publish_to: "none"
 version: 1.0.0+1
 environment:
   sdk: ^3.5.0
@@ -23,6 +23,7 @@ dependencies:
   cookie_jar: ^3.0.1
   cached_network_image: ^3.2.3
   geocoding: ^3.0.0
+  flutter_secure_storage: ^5.0.2
 
 dev_dependencies:
   flutter_test:
