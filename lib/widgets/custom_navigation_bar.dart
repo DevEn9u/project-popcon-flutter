@@ -154,23 +154,22 @@ class _NearPopupTabState extends State<NearPopupTab> {
         'assets/images/marker4.png');
   }
 
-  // API를 호출하여 주변 팝업데이터 가져오는 함수
-
-  // Future<void> fetchNearbyPopups() async {
-  //   final apiUrl = 'http://localhost:8080/api/popupBoard/list';
-  //   try {
-  //     final response = await http.get(Uri.parse(apiUrl));
-  //     if (response.statusCode == 200) {
-  //       final data = jsonDecode(response.body);
-  //       List<dynamic> popupList = data['popups'];
-  //       _addPopupsToMap(popupList);
-  //     } else {
-  //       print('팝업스토어 정보를 가져오는데 실패했습니다.');
-  //     }
-  //   } catch(e) {
-  //       print('Error: $e');
-  //   }
-  // }
+    // API를 호출하여 주변 팝업데이터 가져오는 함수
+    Future<void> fetchNearbyPopups() async {
+      final apiUrl = 'http://localhost:8080/api/popupBoard/list';
+      try {
+        final response = await http.get(Uri.parse(apiUrl));
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          List<dynamic> popupList = data['popups'];
+          _addPopupsToMap(popupList);
+        } else {
+          print('팝업스토어 정보를 가져오는데 실패했습니다.');
+        }
+      } catch (e) {
+        print('Error: $e');
+      }
+    }
 
   void _addPopupsToMap(List<dynamic> popupList) {
     _markers.clear(); // 기존 마커 제거
