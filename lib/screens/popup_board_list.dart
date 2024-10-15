@@ -1,27 +1,41 @@
-import 'dart:convert';
+// lib/screens/popup_board_list.dart
 
 import 'package:flutter/material.dart';
-
-import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import 'package:project_popcon_flutter/widgets/custom_drawer.dart';
 import 'package:project_popcon_flutter/widgets/popup_board_widget.dart';
+import '../services/api_service.dart';
+import '../models/popupboard_dto.dart';
 
-class PopupBoard extends StatefulWidget {
-  const PopupBoard({super.key});
-
-  @override
-  State<PopupBoard> createState() => _PopupBoardState();
-}
-
-class _PopupBoardState extends State<PopupBoard> {
-  @override
-  Widget build(BuildContext context) {
-    return const Placeholder();
-  }
-}
-
-class PopupBoardList extends StatelessWidget {
+class PopupBoardList extends StatefulWidget {
   const PopupBoardList({Key? key}) : super(key: key);
+
+  @override
+  _PopupBoardListState createState() => _PopupBoardListState();
+}
+
+class _PopupBoardListState extends State<PopupBoardList> {
+  late Future<List<PopupboardDTO>> _popupListFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _popupListFuture = fetchPopupList();
+  }
+
+  // 팝업 리스트를 가져오는 메서드
+  Future<List<PopupboardDTO>> fetchPopupList() async {
+    final apiService = Provider.of<ApiService>(context, listen: false);
+    return await apiService.getPopupBoardList();
+  }
+
+  // 새로고침을 수행하는 메서드
+  Future<void> _refreshPopupList() async {
+    setState(() {
+      _popupListFuture = fetchPopupList();
+    });
+    await _popupListFuture;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,112 +50,67 @@ class PopupBoardList extends StatelessWidget {
         ),
       ),
       endDrawer: const CustomDrawer(),
-      body: SingleChildScrollView(
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 20.0),
-          color: Color(0xFF121212),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start, // 위쪽에 정렬
-            children: [
-              const Divider(color: Colors.grey),
-              Container(
-                alignment: Alignment.centerLeft,
-                child: RichText(
-                  text: TextSpan(
-                    children: const [
-                      TextSpan(
-                        text: "진행중인 팝업",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24.0,
-                          fontWeight: FontWeight.bold,
+      // RefreshIndicator로 SingleChildScrollView 감싸기
+      body: RefreshIndicator(
+        onRefresh: _refreshPopupList, // 새로고침 시 호출되는 메서드
+        child: FutureBuilder<List<PopupboardDTO>>(
+          future: _popupListFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              // 로딩 상태
+              return Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              // 오류 상태
+              return Center(child: Text('오류: ${snapshot.error}'));
+            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              // 데이터 없음
+              return Center(child: Text('진행중인 팝업이 없습니다.'));
+            } else {
+              // 성공적으로 데이터 로드
+              List<PopupboardDTO> popupList = snapshot.data!;
+              return SingleChildScrollView(
+                physics: AlwaysScrollableScrollPhysics(), // 항상 스크롤 가능하게 설정
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 20.0),
+                  color: Color(0xFF121212),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start, // 위쪽에 정렬
+                    children: [
+                      const Divider(color: Colors.grey),
+                      Container(
+                        alignment: Alignment.centerLeft,
+                        child: RichText(
+                          text: TextSpan(
+                            children: const [
+                              TextSpan(
+                                text: "진행중인 팝업",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24.0,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              TextSpan(
+                                text: " 10월",
+                                style: TextStyle(
+                                  color: Color(0xFFf0002e),
+                                  fontSize: 24.0,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                      TextSpan(
-                        text: " 10월",
-                        style: TextStyle(
-                          color: Color(0xFFf0002e),
-                          fontSize: 24.0,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      PopupBoardWidget(popups: popupList),
                     ],
                   ),
                 ),
-              ),
-              PopupBoardWidget(),
-            ],
-          ),
+              );
+            }
+          },
         ),
       ),
     );
-  }
-}
-
-/* data가 없을 수도 있기 때문에 async, await을 이용해서 콜백데이터가
-    넘어올 때까지 대기했다가 파싱해야함 */
-void getRequest() async {
-  // API 사이트에서 하나의 게시물을 얻어온 후 파싱
-  var url = Uri.parse("https://jsonplaceholder.typicode.com/posts/1");
-  /* get 방식의 요청을 통해 응답이 올 때까지 기다린 후 콜백데이터 저장 */
-  http.Response response = await http.get(
-    url,
-    headers: {"Accept": "application/json"},
-  );
-
-  // 응답 데이터
-  var statusCode = response.statusCode;
-  var responseBody = utf8.decode(response.bodyBytes);
-  // print("statusCode : $statusCode");
-  // print("responseBody : $responseBody");
-
-  // 1차 파싱
-  var jsonData = jsonDecode(responseBody);
-  print('### 1차파싱: $jsonData ###');
-
-  // 각 Key를 이용해서 데이터 인출
-  String userId = jsonData['userId'].toString();
-  String id = jsonData['id'].toString();
-  String title = jsonData['title'].toString();
-  String body = jsonData['body'].toString();
-
-  // console에 결과 출력
-  print("userId : $userId");
-  print("id : $id");
-  print("title : $title");
-  print("body : $body");
-}
-
-void getRequest2() async {
-  // API 사이트에서 하나의 게시물을 얻어온 후 파싱
-  var url = Uri.parse("https://jsonplaceholder.typicode.com/posts");
-  /* get 방식의 요청을 통해 응답이 올 때까지 기다린 후 콜백데이터 저장 */
-  http.Response response = await http.get(
-    url,
-    headers: {"Accept": "application/json"},
-  );
-
-  // 응답 데이터
-  var statusCode = response.statusCode;
-  var responseBody = utf8.decode(response.bodyBytes);
-  // print("statusCode : $statusCode");
-  // print("responseBody : $responseBody");
-
-  // 1차 파싱
-  var jsonData = jsonDecode(responseBody);
-  print('### 1차파싱: $jsonData ###');
-
-  // row는 jsonData의 데이터의 각 항목.
-  for (var row in jsonData) {
-    String userId = row['userId'].toString();
-    String id = row['id'].toString();
-    String title = row['title'].toString();
-    String body = row['body'].toString();
-
-    print("userId : $userId");
-    print("id : $id");
-    print("title : $title");
-    print("body : $body");
-    print("======================");
   }
 }
