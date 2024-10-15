@@ -209,7 +209,8 @@ class _NearPopupTabState extends State<NearPopupTab> {
     List<PopupboardDTO> popupList = await apiService.getPopupBoardList();
 
     for (var popup in popupList) {
-      LatLng? coordinates = await getCoordinatesFromAddress(popup.popupAddr); // popupAddr 사용
+      LatLng? coordinates =
+          await getCoordinatesFromAddress(popup.popupAddr); // popupAddr 사용
       if (coordinates != null) {
         addMarker(coordinates, popup);
       }
@@ -301,9 +302,6 @@ class _NearPopupTabState extends State<NearPopupTab> {
     );
   }
 }
-
-
-
 
 // LoginTab
 class LoginTab extends StatefulWidget {
