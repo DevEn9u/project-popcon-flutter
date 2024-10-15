@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -19,6 +20,10 @@ import 'package:provider/provider.dart';
 import '../screens/mainPage.dart';
 import 'package:project_popcon_flutter/services/api_service.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter/services.dart'; // Clipboard 사용을 위해 추가
+import 'package:flutter_local_notifications/flutter_local_notifications.dart'; // 알림 패키지 추가
+import 'package:timezone/data/latest_all.dart' as tz; // 타임존 데이터 초기화용
+import 'package:timezone/timezone.dart' as tz; // 타임존 사용
 
 class CustomNavigationBar extends StatelessWidget {
   final PersistentTabController controller;
@@ -368,6 +373,76 @@ class _LoginTabState extends State<LoginTab> {
   List<BookingDTO>? bookings;
   bool isFetchingData = false;
 
+  // FlutterLocalNotificationsPlugin 인스턴스 생성
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
+  @override
+  void initState() {
+    super.initState();
+    initializeTimeZones(); // 타임존 초기화
+    initializeNotifications(); // 알림 초기화
+    requestNotificationPermission(); // 알림 권한 요청
+  }
+
+  // 알림 권한 요청 메서드
+  void requestNotificationPermission() async {
+    if (Platform.isAndroid) {
+      PermissionStatus status = await Permission.notification.request();
+      if (status.isGranted) {
+        // 권한이 허용됨
+        print('알림 권한이 허용되었습니다.');
+      } else {
+        // 권한이 거부됨
+        print('알림 권한이 거부되었습니다.');
+      }
+    }
+  }
+
+  // 타임존 초기화 메서드
+  void initializeTimeZones() {
+    tz.initializeTimeZones();
+    tz.setLocalLocation(tz.getLocation('Asia/Seoul')); // 한국 시간대 설정
+  }
+
+  // 알림 초기화 메서드
+  void initializeNotifications() async {
+    // Android 설정
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+
+    // iOS 설정
+    final DarwinInitializationSettings initializationSettingsDarwin =
+        DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
+    );
+
+    // 전체 초기화 설정
+    final InitializationSettings initializationSettings =
+        InitializationSettings(
+      android: initializationSettingsAndroid,
+      iOS: initializationSettingsDarwin,
+    );
+
+    // 초기화
+    await flutterLocalNotificationsPlugin.initialize(
+      initializationSettings,
+      onDidReceiveNotificationResponse: onDidReceiveNotificationResponse,
+    );
+  }
+
+  // 알림 선택 시 호출되는 콜백
+  void onDidReceiveNotificationResponse(
+      NotificationResponse notificationResponse) {
+    final String? payload = notificationResponse.payload;
+    if (payload != null && payload.isNotEmpty) {
+      int bookingNum = int.parse(payload);
+      // 예약 상세 페이지로 이동하는 로직 추가 가능
+    }
+  }
+
   @override
   void dispose() {
     _idController.dispose();
@@ -417,6 +492,8 @@ class _LoginTabState extends State<LoginTab> {
   // 로그아웃 기능 추가
   void performLogout() async {
     await apiService.logout(); // JWT 토큰 삭제
+    // 모든 스케줄된 알림 취소
+    await flutterLocalNotificationsPlugin.cancelAll();
     setState(() {
       memberData = null;
       likedPopups = null;
@@ -459,6 +536,8 @@ class _LoginTabState extends State<LoginTab> {
       setState(() {
         bookings = data;
       });
+      // 예약된 알림 스케줄링
+      scheduleNotificationsForBookings(data);
     } catch (e) {
       setState(() {
         errorMessage =
@@ -471,6 +550,61 @@ class _LoginTabState extends State<LoginTab> {
     }
   }
 
+  // 예약 정보에 따른 알림 스케줄링
+  void scheduleNotificationsForBookings(List<BookingDTO> bookings) async {
+    // 기존 알림 모두 취소
+    await flutterLocalNotificationsPlugin.cancelAll();
+
+    for (var booking in bookings) {
+      if (booking.visitDate != null && booking.isCanceled == 0) {
+        scheduleNotification(booking);
+      }
+    }
+  }
+
+  // 개별 예약에 대한 알림 스케줄링
+  Future<void> scheduleNotification(BookingDTO booking) async {
+    // 방문 날짜 전날 오후 6시에 알림을 보내도록 설정 (예시)
+    final DateTime scheduledDate =
+        booking.visitDate!.subtract(Duration(minutes: 520));
+
+    // 현재 시간보다 이전이면 스케줄링하지 않음
+    if (scheduledDate.isBefore(DateTime.now())) {
+      return;
+    }
+
+    // 알림 ID는 예약 번호로 사용 (고유해야 함)
+    int notificationId = booking.bookingNum;
+
+    // 알림 상세 설정
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+      'booking_reminder_channel', // 채널 ID
+      '예약 알림', // 채널 이름
+      channelDescription: '팝업 방문 예약 알림', // 채널 설명
+      importance: Importance.max,
+      priority: Priority.high,
+      showWhen: true,
+    );
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+      iOS: DarwinNotificationDetails(),
+    );
+
+    // 알림 스케줄링
+    await flutterLocalNotificationsPlugin.zonedSchedule(
+      notificationId,
+      '팝업 방문 예약 알림',
+      '${booking.popupTitle} 팝업 방문 날짜입니다.',
+      tz.TZDateTime.from(scheduledDate, tz.local),
+      platformChannelSpecifics,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      payload: booking.bookingNum.toString(), // 알림 클릭 시 전달할 데이터
+    );
+  }
+
   // 전체 데이터 새로고침
   Future<void> refreshData() async {
     await fetchLikedPopups();
@@ -479,6 +613,7 @@ class _LoginTabState extends State<LoginTab> {
 
   @override
   Widget build(BuildContext context) {
+    // 로그인 상태에 따라 다른 화면을 표시합니다.
     return Scaffold(
       backgroundColor: Color(0xFF1E1E1E), // 배경색 설정
       body: Padding(

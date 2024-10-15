@@ -4,10 +4,11 @@ import 'package:flutter/material.dart';
 import 'screens/mainPage.dart';
 import 'package:provider/provider.dart';
 import 'services/api_service.dart';
+import 'package:timezone/data/latest_all.dart' as tz;
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-
+  tz.initializeTimeZones(); // 타임존 데이터 초기화
   // 전역 에러 핸들러 설정
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.dumpErrorToConsole(details);
