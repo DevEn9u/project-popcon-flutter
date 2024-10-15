@@ -121,7 +121,7 @@ class _NearPopupTabState extends State<NearPopupTab> {
     accuracy: LocationAccuracy.high,
     distanceFilter: 10,
   );
-  LatLng _myLoc = const LatLng(37.5702, 126.9830);
+  LatLng _myLoc = const LatLng(37.5702, 126.9830); // 초기 위치 (종각역)
   List<Marker> _markers = [];
   late Future<List<PopupboardDTO>> _popupListFuture;
 
@@ -171,8 +171,8 @@ class _NearPopupTabState extends State<NearPopupTab> {
   void newPosition(Position position) async {
     if (position.accuracy > 25) return;
 
-    // 현재 위치를 종각역으로 설정
-    _myLoc = const LatLng(37.5702, 126.9830);
+    // 현재 위치를 사용자의 위치로 설정
+    _myLoc = LatLng(position.latitude, position.longitude);
 
     final GoogleMapController controller = await _controller.future;
     controller.moveCamera(CameraUpdate.newCameraPosition(
@@ -235,8 +235,8 @@ class _NearPopupTabState extends State<NearPopupTab> {
     );
 
     setState(() {
-      _markers.clear();
-      _markers.add(marker);
+      _markers.clear(); // 기존 마커 제거
+      _markers.add(marker); // 현재 위치 마커 추가
     });
   }
 
@@ -296,6 +296,7 @@ class _NearPopupTabState extends State<NearPopupTab> {
     );
   }
 }
+
 
 
 
