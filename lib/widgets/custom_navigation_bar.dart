@@ -5,6 +5,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -112,7 +113,6 @@ class FreeBoardTab extends StatelessWidget {
   }
 }
 
-// NearPopupTab을 StatefulWidget으로 변경하여 구글 지도 API 가져오기
 class NearPopupTab extends StatefulWidget {
   const NearPopupTab({Key? key}) : super(key: key);
 
@@ -126,16 +126,43 @@ class _NearPopupTabState extends State<NearPopupTab> {
     accuracy: LocationAccuracy.high,
     distanceFilter: 10,
   );
-  LatLng _myLoc = const LatLng(0, 0);
-  String lat = '';
-  String lon = '';
+  LatLng _myLoc = const LatLng(37.5702, 126.9830); // 초기 위치 (종각역)
   List<Marker> _markers = [];
-  final Random _random = Random();
-
-  // 팝업 리스트를 가져오는 Future
   late Future<List<PopupboardDTO>> _popupListFuture;
 
-  // 현재 위치 가져오기 및 위치 변경시 호출
+  // 사용자 정의 마커 세팅
+  late BitmapDescriptor customMarker;
+  late BitmapDescriptor customMarker2;
+
+  @override
+  void initState() {
+    super.initState();
+    // 초기화 - fetchPopupListAndAddMarkers 함수 호출 전
+    _popupListFuture = fetchPopupListAndAddMarkers();
+    setCustomMarker().then((_) {
+      getCurrentLocation(); // 위치 가져오기
+    });
+    setCustomMarker2().then((_) {
+      getCurrentLocation(); // 위치 가져오기
+    });
+  }
+
+  // 사용자 정의 마커 이미지 설정
+  Future<void> setCustomMarker() async {
+    customMarker = await BitmapDescriptor.fromAssetImage(
+      const ImageConfiguration(size: Size(48, 48)),
+      'assets/images/marker2.png',
+    );
+  }
+
+  Future<void> setCustomMarker2() async {
+    customMarker2 = await BitmapDescriptor.fromAssetImage(
+      const ImageConfiguration(size: Size(48, 48)),
+      'assets/images/popup_marker.png',
+    );
+  }
+
+  // 현재 위치 가져오기 및 위치 변경 시 호출
   void getCurrentLocation() async {
     await Permission.location.request().then((status) {
       if (status == PermissionStatus.granted) {
@@ -149,8 +176,7 @@ class _NearPopupTabState extends State<NearPopupTab> {
   void newPosition(Position position) async {
     if (position.accuracy > 25) return;
 
-    lat = '${position.latitude}';
-    lon = '${position.longitude}';
+    // 현재 위치를 사용자의 위치로 설정
     _myLoc = LatLng(position.latitude, position.longitude);
 
     final GoogleMapController controller = await _controller.future;
@@ -158,70 +184,64 @@ class _NearPopupTabState extends State<NearPopupTab> {
         CameraPosition(target: _myLoc, zoom: 17)));
 
     markerAdd(); // 현재 위치에 마커 추가
-    // fetchNearbyPopups(); // 주변 팝업 API 호출
 
-    // 팝업 리스트를 가져오는 Future를 다시 할당하여 업데이트
     setState(() {
-      _popupListFuture = fetchPopupList(); // 위치 변경 시 팝업 리스트 다시 가져오기
+      _popupListFuture = fetchPopupListAndAddMarkers(); // 팝업 리스트 다시 가져오기
     });
   }
 
-  // 사용자 정의 마커 세팅
-  late BitmapDescriptor customMarker;
-  Future<void> setCustomMarker() async {
-    customMarker = await BitmapDescriptor.fromAssetImage(
-        const ImageConfiguration(size: Size(48, 48)),
-        'assets/images/marker4.png');
+  // 주소를 위도, 경도로 변환하는 함수
+  Future<LatLng?> getCoordinatesFromAddress(String address) async {
+    try {
+      List<Location> locations = await locationFromAddress(address);
+      if (locations.isNotEmpty) {
+        return LatLng(locations.first.latitude, locations.first.longitude);
+      }
+    } catch (e) {
+      print('Error converting address to coordinates: $e');
+    }
+    return null;
   }
 
-  // 팝업 리스트를 가져오는 메서드
-  Future<List<PopupboardDTO>> fetchPopupList() async {
+  // 팝업 리스트를 가져오고 각 팝업의 주소를 위도, 경도로 변환 후 마커 추가
+  Future<List<PopupboardDTO>> fetchPopupListAndAddMarkers() async {
     final apiService = Provider.of<ApiService>(context, listen: false);
-    return await apiService.getPopupBoardList(); // 실제 API 호출
-  }
-
-  // API를 호출하여 주변 팝업데이터 가져오는 함수
-
-  // Future<void> fetchNearbyPopups() async {
-  //   final apiUrl = 'http://localhost:8080/api/popupBoard/list';
-  //   try {
-  //     final response = await http.get(Uri.parse(apiUrl));
-  //     if (response.statusCode == 200) {
-  //       final data = jsonDecode(response.body);
-  //       List<dynamic> popupList = data['popups'];
-  //       _addPopupsToMap(popupList);
-  //     } else {
-  //       print('팝업스토어 정보를 가져오는데 실패했습니다.');
-  //     }
-  //   } catch(e) {
-  //       print('Error: $e');
-  //   }
-  // }
-
-  void _addPopupsToMap(List<dynamic> popupList) {
-    _markers.clear(); // 기존 마커 제거
+    List<PopupboardDTO> popupList = await apiService.getPopupBoardList();
 
     for (var popup in popupList) {
-      final marker = Marker(
-        markerId: MarkerId(popup['id'].toString()),
-        position: LatLng(popup['latitude'], popup['longitude']),
-        icon: customMarker, // 사용자 정의 마커
-        onTap: () => callSnackBar("${popup['name']}"),
-      );
-
-      setState(() {
-        _markers.add(marker); // 마커 추가
-      });
+      LatLng? coordinates = await getCoordinatesFromAddress(popup.popupAddr); // popupAddr 사용
+      if (coordinates != null) {
+        addMarker(coordinates, popup);
+      }
     }
+    return popupList; // FutureBuilder에서 사용할 수 있도록 반환
   }
 
-  @override
-  void initState() {
-    super.initState();
+  // 팝업에 대한 마커를 지도에 추가하는 함수
+  void addMarker(LatLng position, PopupboardDTO popup) {
+    final marker = Marker(
+      markerId: MarkerId(popup.boardIdx.toString()), // 고유한 markerId 설정
+      position: position,
+      icon: customMarker2, // customMarker 이미지를 사용
+      infoWindow: InfoWindow(title: popup.boardTitle), // 팝업 정보 표시
+    );
 
-    _popupListFuture = setCustomMarker().then((_) {
-      getCurrentLocation();
-      return fetchPopupList();
+    setState(() {
+      _markers.add(marker); // 마커 리스트에 추가
+    });
+  }
+
+  // 현재 위치에 마커를 추가하는 함수
+  void markerAdd() {
+    final marker = Marker(
+      markerId: const MarkerId('marker'),
+      position: _myLoc,
+      icon: customMarker,
+    );
+
+    setState(() {
+      _markers.clear(); // 기존 마커 제거
+      _markers.add(marker); // 현재 위치 마커 추가
     });
   }
 
@@ -234,7 +254,6 @@ class _NearPopupTabState extends State<NearPopupTab> {
         title: const Text("내주변팝업", style: TextStyle(color: Colors.white)),
       ),
       body: SingleChildScrollView(
-        // 스크롤 가능하도록 변경
         child: Column(
           children: [
             Container(
@@ -244,7 +263,7 @@ class _NearPopupTabState extends State<NearPopupTab> {
                 mapType: MapType.normal,
                 initialCameraPosition: const CameraPosition(
                   target: LatLng(0, 0),
-                  zoom: 17.0,
+                  zoom: 4,
                 ),
                 onMapCreated: (GoogleMapController controller) {
                   _controller.complete(controller);
@@ -254,7 +273,7 @@ class _NearPopupTabState extends State<NearPopupTab> {
             ),
             // PopupBoardWidget 추가 (FutureBuilder 사용)
             FutureBuilder<List<PopupboardDTO>>(
-              future: _popupListFuture,
+              future: _popupListFuture, // 초기화된 Future 사용
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return Center(child: CircularProgressIndicator()); // 로딩 중
@@ -281,74 +300,10 @@ class _NearPopupTabState extends State<NearPopupTab> {
       ),
     );
   }
-
-  // 현재 위치에 마커를 추가하는 경우
-  void markerAdd() {
-    final marker = Marker(
-      markerId: const MarkerId('marker'),
-      position: _myLoc,
-      icon: customMarker,
-      onTap: () => callSnackBar("안녕하세요 홍길동님!"),
-    );
-
-    setState(() {
-      print('666');
-      _markers.clear();
-      _markers.add(marker);
-    });
-  }
-
-  callSnackBar(msg) {
-    int myRandomCount = _random.nextInt(5);
-    print(myRandomCount);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Container(
-          color: Color(0xFF121212),
-          height: 60,
-          child: Row(
-            children: [
-              Image.asset(
-                'assets/images/marker3.png',
-                width: 60,
-              ),
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(msg, style: const TextStyle(color: Colors.black)),
-                  Row(
-                    children: [
-                      IconTheme(
-                        data: const IconThemeData(
-                          color: Colors.red,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: List.generate(5, (index) {
-                            return Icon(
-                              index < myRandomCount
-                                  ? Icons.star
-                                  : Icons.star_border,
-                            );
-                          }),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        backgroundColor: Colors.yellow[800],
-        duration: const Duration(milliseconds: 60000),
-        action: SnackBarAction(
-            label: 'Undo', textColor: Colors.black, onPressed: () {}),
-      ),
-    );
-  }
 }
+
+
+
 
 // LoginTab
 class LoginTab extends StatefulWidget {
