@@ -9,8 +9,7 @@ class LikedPopupWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 서버의 베이스 URL 설정 (실제 IP 주소로 변경 필요)
-    final String baseUrl = 'http://10.0.2.2:8080'; // 에뮬레이터용
+    final String baseUrl = 'http://10.0.2.2:8080'; // 실제 IP 주소로 변경 필요
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -25,8 +24,8 @@ class LikedPopupWidget extends StatelessWidget {
         ),
         SizedBox(height: 10),
         ListView.builder(
-          shrinkWrap: true, // ListView가 Column 내부에서 스크롤을 방지
-          physics: NeverScrollableScrollPhysics(),
+          shrinkWrap: true, // 추가
+          physics: NeverScrollableScrollPhysics(), // 추가
           itemCount: popups.length,
           itemBuilder: (context, index) {
             final popup = popups[index];
@@ -37,7 +36,7 @@ class LikedPopupWidget extends StatelessWidget {
               child: ListTile(
                 leading: popup.thumb != null && popup.thumb!.isNotEmpty
                     ? Image.network(
-                        '$baseUrl/${popup.thumb}', // 이미지 경로에 베이스 URL 추가
+                        '$baseUrl/${popup.thumb}',
                         width: 50,
                         height: 50,
                         fit: BoxFit.cover,
