@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:project_popcon_flutter/models/booking_dto.dart';
 import 'package:project_popcon_flutter/models/popupboard_dto.dart';
 import '../models/board_dto.dart';
 import 'package:http/http.dart' as http;
@@ -269,6 +270,24 @@ class ApiService {
       }
     } catch (e) {
       throw Exception('좋아요한 팝업을 가져오는 데 실패했습니다. Error: $e');
+    }
+  }
+
+  // 예약된 팝업 목록을 가져오는 메서드
+  Future<List<BookingDTO>> getMyBookings() async {
+    try {
+      final response = await _dio.get('/api/bookings/mybookings');
+
+      if (response.statusCode == 200) {
+        List<dynamic> data = response.data;
+        return data.map((json) => BookingDTO.fromJson(json)).toList();
+      } else if (response.statusCode == 401) {
+        throw Exception('로그인이 필요합니다.');
+      } else {
+        throw Exception('예약된 팝업을 가져오는 데 실패했습니다.');
+      }
+    } catch (e) {
+      throw Exception('예약된 팝업을 가져오는 데 실패했습니다. Error: $e');
     }
   }
 

@@ -9,9 +9,11 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
+import 'package:project_popcon_flutter/models/booking_dto.dart';
 import 'package:project_popcon_flutter/models/popupboard_dto.dart';
 import 'package:project_popcon_flutter/screens/free_board_list.dart';
 import 'package:project_popcon_flutter/screens/popup_board_list.dart';
+import 'package:project_popcon_flutter/widgets/booking_list_widget.dart';
 import 'package:project_popcon_flutter/widgets/liked_popup_widget.dart';
 import 'package:project_popcon_flutter/widgets/popup_board_widget.dart';
 import 'package:provider/provider.dart';
@@ -315,7 +317,10 @@ class _LoginTabState extends State<LoginTab> {
   final TextEditingController _passwordController = TextEditingController();
 
   // 좋아요한 팝업 목록을 저장할 변수
-  Future<List<PopupboardDTO>>? _likedPopupsFuture;
+  List<PopupboardDTO>? likedPopups;
+  // 예약된 팝업 목록을 저장할 변수
+  List<BookingDTO>? bookings;
+  bool isFetchingData = false;
 
   @override
   void dispose() {
@@ -339,7 +344,8 @@ class _LoginTabState extends State<LoginTab> {
       isLoading = true;
       errorMessage = null;
       memberData = null;
-      _likedPopupsFuture = null;
+      likedPopups = null;
+      bookings = null;
     });
 
     try {
@@ -347,9 +353,10 @@ class _LoginTabState extends State<LoginTab> {
       print('로그인 성공: $data'); // 로그인 성공 시 데이터 출력
       setState(() {
         memberData = data['user'];
-        // 로그인 성공 시 좋아요한 팝업 목록을 가져옵니다.
-        _likedPopupsFuture = apiService.getLikedPopups();
       });
+      // 로그인 성공 시 좋아요한 팝업 목록과 예약된 팝업 목록을 가져옵니다.
+      await fetchLikedPopups();
+      await fetchBookings();
     } catch (e) {
       setState(() {
         errorMessage = e.toString().replaceFirst('Exception: ', '');
@@ -366,69 +373,145 @@ class _LoginTabState extends State<LoginTab> {
     await apiService.logout(); // JWT 토큰 삭제
     setState(() {
       memberData = null;
-      _likedPopupsFuture = null;
+      likedPopups = null;
+      bookings = null;
       _idController.clear();
       _passwordController.clear();
       errorMessage = null;
     });
   }
 
+  // 좋아요한 팝업 목록을 가져오는 메서드
+  Future<void> fetchLikedPopups() async {
+    setState(() {
+      isFetchingData = true;
+    });
+    try {
+      List<PopupboardDTO> data = await apiService.getLikedPopups();
+      setState(() {
+        likedPopups = data;
+      });
+    } catch (e) {
+      setState(() {
+        errorMessage =
+            '좋아요한 팝업을 가져오는 데 실패했습니다: ${e.toString().replaceFirst('Exception: ', '')}';
+      });
+    } finally {
+      setState(() {
+        isFetchingData = false;
+      });
+    }
+  }
+
+  // 예약된 팝업 목록을 가져오는 메서드
+  Future<void> fetchBookings() async {
+    setState(() {
+      isFetchingData = true;
+    });
+    try {
+      List<BookingDTO> data = await apiService.getMyBookings();
+      setState(() {
+        bookings = data;
+      });
+    } catch (e) {
+      setState(() {
+        errorMessage =
+            '예약된 팝업을 가져오는 데 실패했습니다: ${e.toString().replaceFirst('Exception: ', '')}';
+      });
+    } finally {
+      setState(() {
+        isFetchingData = false;
+      });
+    }
+  }
+
+  // 전체 데이터 새로고침
+  Future<void> refreshData() async {
+    await fetchLikedPopups();
+    await fetchBookings();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("로그인/마이페이지"),
-        backgroundColor: Color(0xFF121212),
-      ),
-      body: Container(
-        padding: EdgeInsets.all(16.0),
-        color: Color(0xFF121212),
-        child: Center(
-          child: SingleChildScrollView(
-            child: memberData == null
-                ? Column(
+      backgroundColor: Color(0xFF1E1E1E), // 배경색 설정
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: memberData == null
+            ? Center(
+                child: SingleChildScrollView(
+                  child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // 회원 ID 입력 필드
+                      // 로고 이미지 추가
+                      Image.asset(
+                        'assets/images/logo.png',
+                        height: 80,
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        'POPCON 로그인하기',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 40),
+                      // 아이디 입력 필드
                       TextField(
                         controller: _idController,
                         decoration: InputDecoration(
-                          labelText: '회원 ID',
-                          labelStyle: TextStyle(color: Colors.white),
-                          enabledBorder: UnderlineInputBorder(
-                            borderSide: BorderSide(color: Colors.white),
+                          hintText: '아이디를 입력하세요',
+                          hintStyle: TextStyle(color: Colors.grey),
+                          fillColor: Colors.black,
+                          filled: true,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8.0),
+                            borderSide: BorderSide.none,
                           ),
                         ),
                         style: TextStyle(color: Colors.white),
                       ),
-                      SizedBox(height: 20),
+                      SizedBox(height: 16),
                       // 비밀번호 입력 필드
                       TextField(
                         controller: _passwordController,
                         decoration: InputDecoration(
-                          labelText: '비밀번호',
-                          labelStyle: TextStyle(color: Colors.white),
-                          enabledBorder: UnderlineInputBorder(
-                            borderSide: BorderSide(color: Colors.white),
+                          hintText: '비밀번호를 입력하세요',
+                          hintStyle: TextStyle(color: Colors.grey),
+                          fillColor: Colors.black,
+                          filled: true,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8.0),
+                            borderSide: BorderSide.none,
                           ),
                         ),
-                        style: TextStyle(color: Colors.white),
                         obscureText: true,
+                        style: TextStyle(color: Colors.white),
                       ),
-                      SizedBox(height: 20),
-                      // JWT 로그인 버튼
+                      SizedBox(height: 24),
+                      // 로그인 버튼
                       ElevatedButton(
                         onPressed: isLoading ? null : performJwtLogin,
-                        child: Text('로그인'),
+                        child: isLoading
+                            ? CircularProgressIndicator(
+                                color: Colors.black,
+                              )
+                            : Text(
+                                '로그인',
+                                style: TextStyle(
+                                    color: Colors.black, fontSize: 18),
+                              ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFFf0002e),
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 50, vertical: 15),
+                          backgroundColor: Color(0xFFF0D9B5),
+                          minimumSize: Size(double.infinity, 50),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8.0),
+                          ),
                         ),
                       ),
-                      SizedBox(height: 20),
-                      // 로딩 인디케이터
-                      if (isLoading) CircularProgressIndicator(),
+                      SizedBox(height: 16),
                       // 오류 메시지 표시
                       if (errorMessage != null)
                         GestureDetector(
@@ -441,97 +524,87 @@ class _LoginTabState extends State<LoginTab> {
                               SnackBar(content: Text('오류 메시지가 복사되었습니다.')),
                             );
                           },
-                          child: SelectableText(
+                          child: Text(
                             errorMessage!,
                             style: TextStyle(color: Colors.red, fontSize: 16),
                             textAlign: TextAlign.center,
                           ),
                         ),
                     ],
-                  )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      // 마이페이지: 환영 메시지 표시
-                      Text(
-                        "환영합니다, ${memberData!['name']}님!",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      SizedBox(height: 20),
-                      // 좋아요한 팝업 목록 표시
-                      _likedPopupsFuture == null
-                          ? CircularProgressIndicator()
-                          : FutureBuilder<List<PopupboardDTO>>(
-                              future: _likedPopupsFuture,
-                              builder: (context, snapshot) {
-                                if (snapshot.connectionState ==
-                                    ConnectionState.waiting) {
-                                  return Center(
-                                      child:
-                                          CircularProgressIndicator()); // 로딩 중
-                                } else if (snapshot.hasError) {
-                                  return Center(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: GestureDetector(
-                                        onLongPress: () {
-                                          // 오류 메시지를 클립보드에 복사
-                                          Clipboard.setData(
-                                            ClipboardData(
-                                              text:
-                                                  '좋아요한 팝업을 가져오는 데 실패했습니다:\n${snapshot.error}',
-                                            ),
-                                          );
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            SnackBar(
-                                                content:
-                                                    Text('오류 메시지가 복사되었습니다.')),
-                                          );
-                                        },
-                                        child: SelectableText(
-                                          '좋아요한 팝업을 가져오는 데 실패했습니다:\n${snapshot.error}',
-                                          style: TextStyle(color: Colors.red),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                } else if (!snapshot.hasData ||
-                                    snapshot.data!.isEmpty) {
-                                  return Center(
-                                    child: Text(
-                                      '좋아요한 팝업이 없습니다.',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                  );
-                                } else {
-                                  List<PopupboardDTO> likedPopups =
-                                      snapshot.data!;
-                                  return LikedPopupWidget(popups: likedPopups);
-                                }
-                              },
-                            ),
-                      SizedBox(height: 40),
-                      // 로그아웃 버튼
-                      ElevatedButton(
-                        onPressed: performLogout,
-                        child: Text('로그아웃'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey,
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 50, vertical: 15),
-                        ),
-                      ),
-                    ],
                   ),
-          ),
-        ),
+                ),
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // 마이페이지: 환영 메시지 표시
+                  SizedBox(height: 40),
+                  Text(
+                    "환영합니다, ${memberData!['name']}님!",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 20),
+                  // 예약된 팝업 목록과 좋아요한 팝업 목록 표시
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: refreshData,
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            // 예약된 팝업 목록 표시
+                            bookings == null
+                                ? Center(child: CircularProgressIndicator())
+                                : bookings!.isEmpty
+                                    ? Center(
+                                        child: Text(
+                                          '예약된 팝업이 없습니다.',
+                                          style: TextStyle(color: Colors.white),
+                                        ),
+                                      )
+                                    : BookingListWidget(bookings: bookings!),
+                            SizedBox(height: 20),
+                            // 좋아요한 팝업 목록 표시
+                            likedPopups == null
+                                ? Center(child: CircularProgressIndicator())
+                                : likedPopups!.isEmpty
+                                    ? Center(
+                                        child: Text(
+                                          '좋아요한 팝업이 없습니다.',
+                                          style: TextStyle(color: Colors.white),
+                                        ),
+                                      )
+                                    : LikedPopupWidget(popups: likedPopups!),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 40),
+                  // 로그아웃 버튼
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 20.0), // 아래쪽 마진 추가
+                    child: ElevatedButton(
+                      onPressed: performLogout,
+                      child: Text(
+                        '로그아웃',
+                        style: TextStyle(color: Colors.black, fontSize: 18),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFFF0D9B5),
+                        minimumSize: Size(double.infinity, 50),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
       ),
     );
   }

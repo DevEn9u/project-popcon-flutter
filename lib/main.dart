@@ -6,6 +6,14 @@ import 'package:provider/provider.dart';
 import 'services/api_service.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // 전역 에러 핸들러 설정
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.dumpErrorToConsole(details);
+    // 필요한 경우 로그를 서버로 전송하거나 추가 처리를 할 수 있습니다.
+  };
+
   // 환경에 따라 Base URL을 동적으로 설정
   String baseUrl;
   if (Platform.isAndroid) {
