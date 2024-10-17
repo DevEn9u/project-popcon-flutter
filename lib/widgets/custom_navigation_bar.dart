@@ -27,6 +27,7 @@ import 'package:timezone/data/latest_all.dart' as tz; // 타임존 데이터 초
 import 'package:timezone/timezone.dart' as tz; // 타임존 사용
 import 'package:android_intent_plus/android_intent.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CustomNavigationBar extends StatelessWidget {
   final PersistentTabController controller;
@@ -334,6 +335,7 @@ class _LoginTabState extends State<LoginTab> {
     initializeTimeZones(); // 타임존 초기화
     initializeNotifications(); // 알림 초기화
     requestNotificationPermission(); // 알림 권한 요청
+    checkLoginStatus(); // 로그인 상태 확인
   }
 
   // 타임존 초기화 메서드
@@ -461,6 +463,7 @@ class _LoginTabState extends State<LoginTab> {
     super.dispose();
   }
 
+// Jwt로그인
   Future<void> performJwtLogin() async {
     String id = _idController.text.trim();
     String password = _passwordController.text.trim();
@@ -482,10 +485,16 @@ class _LoginTabState extends State<LoginTab> {
 
     try {
       Map<String, dynamic> data = await apiService.jwtLogin(id, password);
-      print('로그인 성공: $data'); // 로그인 성공 시 데이터 출력
+      print('로그인 성공: $data');
       setState(() {
         memberData = data['user'];
       });
+
+      // 로그인 성공 후 토큰과 사용자 정보를 SharedPreferences에 저장
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('jwtToken', data['token']);
+      await prefs.setString('userName', data['user']['name']);
+
       // 로그인 성공 시 좋아요한 팝업 목록과 예약된 팝업 목록을 가져옵니다.
       await fetchLikedPopups();
       await fetchBookings();
@@ -500,11 +509,31 @@ class _LoginTabState extends State<LoginTab> {
     }
   }
 
-  // 로그아웃 기능 추가
+  Future<void> checkLoginStatus() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('jwtToken');
+    String? userName = prefs.getString('userName');
+
+    if (token != null && userName != null) {
+      setState(() {
+        memberData = {'name': userName};
+      });
+      // 필요 시 좋아요한 팝업 목록과 예약된 팝업 목록을 가져옵니다.
+      await fetchLikedPopups();
+      await fetchBookings();
+    }
+  }
+
+  // 로그아웃 기능
   void performLogout() async {
     await apiService.logout(); // JWT 토큰 삭제
-    // 모든 스케줄된 알림 취소
     await AwesomeNotifications().cancelAll();
+
+    // SharedPreferences 초기화
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.remove('jwtToken');
+    await prefs.remove('userName');
+
     setState(() {
       memberData = null;
       likedPopups = null;
@@ -622,7 +651,7 @@ class _LoginTabState extends State<LoginTab> {
     }
   }
 
-  // **새로 추가된** 테스트 알림 스케줄링 메서드
+  //테스트 알림 스케줄링 메서드
   Future<void> sendTestNotification() async {
     try {
       await AwesomeNotifications().createNotification(
