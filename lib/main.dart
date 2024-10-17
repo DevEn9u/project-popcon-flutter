@@ -17,7 +17,7 @@ void main() {
   // 환경에 따라 Base URL을 동적으로 설정
   String baseUrl;
   if (Platform.isAndroid) {
-    baseUrl = 'http://192.168.0.22:8080'; // Android 에뮬레이터
+    baseUrl = 'http://10.0.2.2:8080'; // Android 에뮬레이터
   } else if (Platform.isIOS) {
     baseUrl = 'http://localhost:8080'; // iOS 시뮬레이터
   } else {
