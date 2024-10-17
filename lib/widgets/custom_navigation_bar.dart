@@ -729,22 +729,6 @@ class _LoginTabState extends State<LoginTab> {
                         ),
                       ),
                       SizedBox(height: 16),
-                      // **새로 추가된** 테스트 알림 버튼
-                      ElevatedButton(
-                        onPressed: isLoading ? null : sendTestNotification,
-                        child: Text(
-                          '테스트 알림 보내기',
-                          style: TextStyle(color: Colors.black, fontSize: 18),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFFF0D9B5),
-                          minimumSize: Size(double.infinity, 50),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8.0),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 16),
                       // 오류 메시지 표시
                       if (errorMessage != null)
                         GestureDetector(
@@ -813,18 +797,6 @@ class _LoginTabState extends State<LoginTab> {
                                       )
                                     : LikedPopupWidget(popups: likedPopups!),
                             SizedBox(height: 20),
-                            // **마이페이지에 추가된** 테스트 알림 버튼
-                            ElevatedButton(
-                              onPressed: sendTestNotification,
-                              child: Text('테스트 알림 보내기'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Color(0xFFF0D9B5),
-                                minimumSize: Size(double.infinity, 50),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8.0),
-                                ),
-                              ),
-                            ),
                           ],
                         ),
                       ),
