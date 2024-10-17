@@ -4,11 +4,10 @@ import 'package:flutter/material.dart';
 import 'screens/mainPage.dart';
 import 'package:provider/provider.dart';
 import 'services/api_service.dart';
-import 'package:timezone/data/latest_all.dart' as tz;
+import 'package:awesome_notifications/awesome_notifications.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  tz.initializeTimeZones(); // 타임존 데이터 초기화
   // 전역 에러 핸들러 설정
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.dumpErrorToConsole(details);
@@ -25,6 +24,22 @@ void main() {
     // 실제 기기나 기타 환경
     baseUrl = 'http://192.168.1.100:8080'; // 호스트 머신의 IP 주소로 변경
   }
+
+  // Awesome Notifications 초기화
+  AwesomeNotifications().initialize(
+    // 아이콘을 설정합니다. Android의 경우 drawable 폴더에 아이콘을 추가해야 합니다.
+    'resource://drawable/res_app_icon',
+    [
+      NotificationChannel(
+        channelKey: 'basic_channel',
+        channelName: 'Basic Notifications',
+        channelDescription: 'Notification channel for basic tests',
+        defaultColor: Colors.teal,
+        importance: NotificationImportance.High,
+        channelShowBadge: true,
+      )
+    ],
+  );
 
   runApp(
     MultiProvider(

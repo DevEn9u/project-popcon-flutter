@@ -18,13 +18,15 @@ import 'package:project_popcon_flutter/widgets/booking_list_widget.dart';
 import 'package:project_popcon_flutter/widgets/liked_popup_widget.dart';
 import 'package:project_popcon_flutter/widgets/popup_board_widget.dart';
 import 'package:provider/provider.dart';
+import 'package:timezone/data/latest_all.dart';
 import '../screens/mainPage.dart';
 import 'package:project_popcon_flutter/services/api_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/services.dart'; // Clipboard 사용을 위해 추가
-import 'package:flutter_local_notifications/flutter_local_notifications.dart'; // 알림 패키지 추가
 import 'package:timezone/data/latest_all.dart' as tz; // 타임존 데이터 초기화용
 import 'package:timezone/timezone.dart' as tz; // 타임존 사용
+import 'package:android_intent_plus/android_intent.dart';
+import 'package:awesome_notifications/awesome_notifications.dart';
 
 class CustomNavigationBar extends StatelessWidget {
   final PersistentTabController controller;
@@ -326,30 +328,12 @@ class _LoginTabState extends State<LoginTab> {
   List<BookingDTO>? bookings;
   bool isFetchingData = false;
 
-  // FlutterLocalNotificationsPlugin 인스턴스 생성
-  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-      FlutterLocalNotificationsPlugin();
-
   @override
   void initState() {
     super.initState();
     initializeTimeZones(); // 타임존 초기화
     initializeNotifications(); // 알림 초기화
     requestNotificationPermission(); // 알림 권한 요청
-  }
-
-  // 알림 권한 요청 메서드
-  void requestNotificationPermission() async {
-    if (Platform.isAndroid) {
-      PermissionStatus status = await Permission.notification.request();
-      if (status.isGranted) {
-        // 권한이 허용됨
-        print('알림 권한이 허용되었습니다.');
-      } else {
-        // 권한이 거부됨
-        print('알림 권한이 거부되었습니다.');
-      }
-    }
   }
 
   // 타임존 초기화 메서드
@@ -360,39 +344,113 @@ class _LoginTabState extends State<LoginTab> {
 
   // 알림 초기화 메서드
   void initializeNotifications() async {
-    // Android 설정
-    const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
-
-    // iOS 설정
-    final DarwinInitializationSettings initializationSettingsDarwin =
-        DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
+    // Awesome Notifications 초기화
+    AwesomeNotifications().initialize(
+      null, // 아이콘을 지정하려면 'resource://drawable/res_app_icon' 형식으로 설정
+      [
+        NotificationChannel(
+          channelKey: 'basic_channel',
+          channelName: '기본 채널',
+          channelDescription: '기본 알림 채널',
+          defaultColor: Colors.teal,
+          importance: NotificationImportance.High,
+          channelShowBadge: true,
+        ),
+      ],
+      debug: true,
     );
 
-    // 전체 초기화 설정
-    final InitializationSettings initializationSettings =
-        InitializationSettings(
-      android: initializationSettingsAndroid,
-      iOS: initializationSettingsDarwin,
-    );
-
-    // 초기화
-    await flutterLocalNotificationsPlugin.initialize(
-      initializationSettings,
-      onDidReceiveNotificationResponse: onDidReceiveNotificationResponse,
+    // 알림 응답 리스너 설정 (필요 시)
+    AwesomeNotifications().setListeners(
+      onActionReceivedMethod: onActionReceivedMethod,
+      onNotificationCreatedMethod: onNotificationCreatedMethod,
+      onNotificationDisplayedMethod: onNotificationDisplayedMethod,
+      onDismissActionReceivedMethod: onDismissActionReceivedMethod,
     );
   }
 
-  // 알림 선택 시 호출되는 콜백
-  void onDidReceiveNotificationResponse(
-      NotificationResponse notificationResponse) {
-    final String? payload = notificationResponse.payload;
-    if (payload != null && payload.isNotEmpty) {
+  // 알림 응답 리스너 (필요 시)
+  Future<void> onActionReceivedMethod(ReceivedAction receivedAction) async {
+    // 알림 클릭 시 동작 구현
+    String? payload = receivedAction.payload?['bookingNum'];
+    if (payload != null) {
       int bookingNum = int.parse(payload);
       // 예약 상세 페이지로 이동하는 로직 추가 가능
+      // 예: Navigator.pushNamed(context, '/detail', arguments: bookingNum);
+    }
+  }
+
+  Future<void> onNotificationCreatedMethod(
+      ReceivedNotification receivedNotification) async {}
+  Future<void> onNotificationDisplayedMethod(
+      ReceivedNotification receivedNotification) async {}
+  Future<void> onDismissActionReceivedMethod(
+      ReceivedAction receivedAction) async {}
+
+  // 알림 권한 요청 메서드
+  void requestNotificationPermission() async {
+    bool isAllowed = await AwesomeNotifications().isNotificationAllowed();
+    if (!isAllowed) {
+      // 사용자에게 권한 요청
+      await AwesomeNotifications().requestPermissionToSendNotifications();
+    }
+
+    // 정확한 알람 권한 확인
+    if (Platform.isAndroid && await isExactAlarmAllowed() == false) {
+      // 사용자에게 정확한 알람 권한 요청 안내
+      await showExactAlarmPermissionDialog();
+    }
+  }
+
+  // 정확한 알람 권한 확인 메서드
+  Future<bool> isExactAlarmAllowed() async {
+    if (Platform.isAndroid) {
+      // Android 12(API 31) 이상에서만 필요
+      if (await Permission.scheduleExactAlarm.isGranted) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+    return true; // iOS나 기타 플랫폼에서는 true 반환
+  }
+
+  // 정확한 알람 권한 요청 다이얼로그 표시 메서드
+  Future<void> showExactAlarmPermissionDialog() async {
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('정확한 알람 권한이 필요합니다'),
+          content:
+              Text('정확한 알람을 사용하려면 권한을 허용해야 합니다. 설정 페이지로 이동하여 권한을 허용해 주세요.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // 다이얼로그 닫기
+              },
+              child: Text('취소'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // 다이얼로그 닫기
+                openExactAlarmSettings(); // 설정 페이지로 이동
+              },
+              child: Text('설정으로 이동'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // 정확한 알람 권한 설정 페이지로 이동하는 메서드
+  void openExactAlarmSettings() async {
+    if (Platform.isAndroid) {
+      final intent = AndroidIntent(
+        action: 'android.settings.REQUEST_SCHEDULE_EXACT_ALARM',
+      );
+      await intent.launch();
     }
   }
 
@@ -446,7 +504,7 @@ class _LoginTabState extends State<LoginTab> {
   void performLogout() async {
     await apiService.logout(); // JWT 토큰 삭제
     // 모든 스케줄된 알림 취소
-    await flutterLocalNotificationsPlugin.cancelAll();
+    await AwesomeNotifications().cancelAll();
     setState(() {
       memberData = null;
       likedPopups = null;
@@ -506,7 +564,7 @@ class _LoginTabState extends State<LoginTab> {
   // 예약 정보에 따른 알림 스케줄링
   void scheduleNotificationsForBookings(List<BookingDTO> bookings) async {
     // 기존 알림 모두 취소
-    await flutterLocalNotificationsPlugin.cancelAll();
+    await AwesomeNotifications().cancelAll();
 
     for (var booking in bookings) {
       if (booking.visitDate != null && booking.isCanceled == 0) {
@@ -517,56 +575,81 @@ class _LoginTabState extends State<LoginTab> {
 
   // 개별 예약에 대한 알림 스케줄링
   Future<void> scheduleNotification(BookingDTO booking) async {
-    // 방문 날짜 전날 오후 6시에 알림을 보내도록 설정 (예시)
-    final DateTime scheduledDate =
-        booking.visitDate!.subtract(Duration(minutes: 520));
+    // 방문 날짜 전날 오후 6시에 알림
+    DateTime scheduledDate =
+        booking.visitDate!.subtract(Duration(minutes: 360));
 
     // 현재 시간보다 이전이면 스케줄링하지 않음
-    if (scheduledDate.isBefore(DateTime.now())) {
+    DateTime now = DateTime.now();
+    if (scheduledDate.isBefore(now)) {
+      print('scheduledDate가 현재 시간보다 이전입니다.');
+      print('현재 시간: $now');
+      print('scheduledDate: $scheduledDate');
       return;
     }
 
     // 알림 ID는 예약 번호로 사용 (고유해야 함)
     int notificationId = booking.bookingNum;
 
-    // 알림 상세 설정
-    const AndroidNotificationDetails androidPlatformChannelSpecifics =
-        AndroidNotificationDetails(
-      'booking_reminder_channel', // 채널 ID
-      '예약 알림', // 채널 이름
-      channelDescription: '팝업 방문 예약 알림', // 채널 설명
-      importance: Importance.max,
-      priority: Priority.high,
-      showWhen: true,
-    );
-    const NotificationDetails platformChannelSpecifics = NotificationDetails(
-      android: androidPlatformChannelSpecifics,
-      iOS: DarwinNotificationDetails(),
-    );
-
     // 알림 스케줄링
-    await flutterLocalNotificationsPlugin.zonedSchedule(
-      notificationId,
-      '팝업 방문 예약 알림',
-      '${booking.popupTitle} 팝업 방문 날짜입니다.',
-      tz.TZDateTime.from(scheduledDate, tz.local),
-      platformChannelSpecifics,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      payload: booking.bookingNum.toString(), // 알림 클릭 시 전달할 데이터
-    );
+    try {
+      await AwesomeNotifications().createNotification(
+        content: NotificationContent(
+          id: notificationId,
+          channelKey: 'basic_channel',
+          title: '팝업 방문 예약 알림',
+          body: '${booking.popupTitle} 팝업 방문 날짜입니다.',
+          notificationLayout: NotificationLayout.Default,
+          payload: {'bookingNum': booking.bookingNum.toString()},
+        ),
+        schedule: NotificationCalendar.fromDate(
+          date: scheduledDate,
+          preciseAlarm: true, // 정확한 알람 설정 (권한 필요)
+        ),
+      );
+
+      print('알림이 스케줄링되었습니다. 시간: $scheduledDate');
+    } catch (e) {
+      print('알림 스케줄링 중 오류 발생: $e');
+      if (e is PlatformException && e.code == 'exact_alarms_not_permitted') {
+        // 정확한 알람 권한이 없을 경우 사용자에게 권한 요청 안내
+        await showExactAlarmPermissionDialog();
+      } else {
+        setState(() {
+          errorMessage = '알림 스케줄링 중 오류가 발생했습니다: $e';
+        });
+      }
+    }
   }
 
-  // 전체 데이터 새로고침
-  Future<void> refreshData() async {
-    await fetchLikedPopups();
-    await fetchBookings();
+  // **새로 추가된** 테스트 알림 스케줄링 메서드
+  Future<void> sendTestNotification() async {
+    try {
+      await AwesomeNotifications().createNotification(
+        content: NotificationContent(
+          id: 100, // 고유 ID
+          channelKey: 'basic_channel',
+          title: '테스트 알림',
+          body: '이것은 테스트 알림입니다.',
+          notificationLayout: NotificationLayout.Default,
+          payload: {'test': 'test_payload'},
+        ),
+      );
+
+      print('테스트 알림이 전송되었습니다.');
+      setState(() {
+        errorMessage = '테스트 알림이 전송되었습니다.';
+      });
+    } catch (e) {
+      print('테스트 알림 전송 중 오류 발생: $e');
+      setState(() {
+        errorMessage = '테스트 알림 전송 중 오류가 발생했습니다: $e';
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // 로그인 상태에 따라 다른 화면을 표시합니다.
     return Scaffold(
       backgroundColor: Color(0xFF1E1E1E), // 배경색 설정
       body: Padding(
@@ -646,6 +729,22 @@ class _LoginTabState extends State<LoginTab> {
                         ),
                       ),
                       SizedBox(height: 16),
+                      // **새로 추가된** 테스트 알림 버튼
+                      ElevatedButton(
+                        onPressed: isLoading ? null : sendTestNotification,
+                        child: Text(
+                          '테스트 알림 보내기',
+                          style: TextStyle(color: Colors.black, fontSize: 18),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFFF0D9B5),
+                          minimumSize: Size(double.infinity, 50),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8.0),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 16),
                       // 오류 메시지 표시
                       if (errorMessage != null)
                         GestureDetector(
@@ -713,6 +812,19 @@ class _LoginTabState extends State<LoginTab> {
                                         ),
                                       )
                                     : LikedPopupWidget(popups: likedPopups!),
+                            SizedBox(height: 20),
+                            // **마이페이지에 추가된** 테스트 알림 버튼
+                            ElevatedButton(
+                              onPressed: sendTestNotification,
+                              child: Text('테스트 알림 보내기'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Color(0xFFF0D9B5),
+                                minimumSize: Size(double.infinity, 50),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8.0),
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -741,5 +853,11 @@ class _LoginTabState extends State<LoginTab> {
               ),
       ),
     );
+  }
+
+  // 데이터 새로고침 메서드
+  Future<void> refreshData() async {
+    await fetchLikedPopups();
+    await fetchBookings();
   }
 }
