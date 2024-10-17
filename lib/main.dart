@@ -22,7 +22,7 @@ void main() {
     baseUrl = 'http://localhost:8080'; // iOS 시뮬레이터
   } else {
     // 실제 기기나 기타 환경
-    baseUrl = 'http://192.168.1.100:8080'; // 호스트 머신의 IP 주소로 변경
+    baseUrl = 'http://192.168.0.22:8080'; // 호스트 머신의 IP 주소로 변경
   }
 
   // Awesome Notifications 초기화
@@ -46,7 +46,7 @@ void main() {
       providers: [
         Provider<ApiService>(
           create: (_) =>
-              ApiService(baseUrl: 'http://10.0.2.2:8080'), // 환경에 맞게 변경
+              ApiService(baseUrl: 'http://192.168.0.22:8080'), // 환경에 맞게 변경
         ),
         // 다른 프로바이더들도 추가 가능
       ],

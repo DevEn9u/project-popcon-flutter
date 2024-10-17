@@ -1,5 +1,3 @@
-// lib/widgets/popup_board_widget.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:project_popcon_flutter/screens/popup_board_view.dart';
@@ -8,7 +6,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 class PopupBoardWidget extends StatelessWidget {
   final List<PopupboardDTO> popups;
-
+  final String baseUrl = 'http://192.168.0.22:8080';
   const PopupBoardWidget({Key? key, required this.popups}) : super(key: key);
 
   @override
@@ -55,7 +53,7 @@ class PopupBoardWidget extends StatelessWidget {
                         child: popup.thumb != null && popup.thumb!.isNotEmpty
                             ? CachedNetworkImage(
                                 imageUrl:
-                                    'http://10.0.2.2:8080${popup.thumb}', // baseUrl에 맞게 수정
+                                    '$baseUrl${popup.thumb}', // baseUrl에 맞게 수정
                                 width: 142,
                                 height: 142,
                                 fit: BoxFit.cover,
