@@ -319,6 +319,7 @@ class _LoginTabState extends State<LoginTab> {
   Map<String, dynamic>? memberData;
   bool isLoading = false;
   String? errorMessage;
+  Set<int> _notifiedBookingNums = {}; // 알림을 보낸 예약 번호 저장
 
   final TextEditingController _idController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -328,6 +329,7 @@ class _LoginTabState extends State<LoginTab> {
   // 예약된 팝업 목록을 저장할 변수
   List<BookingDTO>? bookings;
   bool isFetchingData = false;
+  Timer? _bookingTimer; // 타이머 상태 변수 추가
 
   @override
   void initState() {
@@ -336,6 +338,7 @@ class _LoginTabState extends State<LoginTab> {
     initializeNotifications(); // 알림 초기화
     requestNotificationPermission(); // 알림 권한 요청
     checkLoginStatus(); // 로그인 상태 확인
+    fetchBookingsPeriodically(); // 주기적인 예약 확인 시작
   }
 
   // 타임존 초기화 메서드
@@ -460,6 +463,7 @@ class _LoginTabState extends State<LoginTab> {
   void dispose() {
     _idController.dispose();
     _passwordController.dispose();
+    _bookingTimer?.cancel(); // 타이머 취소
     super.dispose();
   }
 
@@ -566,7 +570,7 @@ class _LoginTabState extends State<LoginTab> {
     }
   }
 
-  // 예약된 팝업 목록을 가져오는 메서드
+// 예약된 팝업 목록을 가져오는 메서드
   Future<void> fetchBookings() async {
     setState(() {
       isFetchingData = true;
@@ -576,8 +580,6 @@ class _LoginTabState extends State<LoginTab> {
       setState(() {
         bookings = data;
       });
-      // 예약된 알림 스케줄링
-      scheduleNotificationsForBookings(data);
     } catch (e) {
       setState(() {
         errorMessage =
@@ -602,7 +604,90 @@ class _LoginTabState extends State<LoginTab> {
     }
   }
 
-  // 개별 예약에 대한 알림 스케줄링
+// 예약된 팝업 목록을 주기적으로 확인하여 새로운 예약이 있는지 확인하는 메서드
+  void fetchBookingsPeriodically() {
+    // 5초마다 예약 확인
+    Timer.periodic(Duration(seconds: 5), (timer) async {
+      await checkForNewBookings();
+    });
+  }
+
+// 새로운 예약이 있는지 확인하는 메서드
+  Future<void> checkForNewBookings() async {
+    setState(() {
+      isFetchingData = true;
+    });
+
+    try {
+      List<BookingDTO> currentBookings = await apiService.getMyBookings();
+
+      // 기존 예약 번호 리스트 생성
+      List<int> existingBookingNums =
+          bookings?.map((b) => b.bookingNum).toList() ?? [];
+
+      // 새로운 예약 필터링
+      List<BookingDTO> newBookings = currentBookings
+          .where((b) => !existingBookingNums.contains(b.bookingNum))
+          .toList();
+
+      if (newBookings.isNotEmpty) {
+        for (var newBooking in newBookings) {
+          if (!_notifiedBookingNums.contains(newBooking.bookingNum)) {
+            await sendNotificationForNewBooking(newBooking);
+            _notifiedBookingNums.add(newBooking.bookingNum); // 알림을 보낸 예약 번호 추가
+          }
+        }
+      }
+
+      // 예약 목록을 업데이트
+      setState(() {
+        bookings = currentBookings;
+      });
+    } catch (e) {
+      setState(() {
+        errorMessage =
+            '예약된 팝업을 가져오는 데 실패했습니다: ${e.toString().replaceFirst('Exception: ', '')}';
+      });
+    } finally {
+      setState(() {
+        isFetchingData = false;
+      });
+    }
+  }
+
+// 새로 추가된 예약에 대해 5초 뒤 알림을 보내는 메서드
+  Future<void> sendNotificationForNewBooking(BookingDTO booking) async {
+    print('새로 추가된 예약에 대해 5초 뒤 알림을 스케줄링합니다: ${booking.popupTitle}');
+
+    // 5초 뒤 알림을 스케줄링
+    Future.delayed(Duration(seconds: 5), () async {
+      print('5초 후 알림 스케줄링 시작');
+      // 예약 정보에 따라 알림을 스케줄링
+      await sendReservationNotification(booking);
+    });
+  }
+
+// 새로 추가된 예약에 대한 알림을 즉시 보내는 메서드
+  Future<void> sendReservationNotification(BookingDTO booking) async {
+    try {
+      print('알림 생성 시작: ${booking.popupTitle}');
+      await AwesomeNotifications().createNotification(
+        content: NotificationContent(
+          id: booking.bookingNum, // 알림 ID는 예약 번호로 사용 (고유해야 함)
+          channelKey: 'basic_channel',
+          title: '예약 완료', // 알림 제목
+          body: '"${booking.popupTitle}"을(를) 예약하였습니다.', // 알림 내용
+          notificationLayout: NotificationLayout.Default,
+          payload: {'bookingNum': booking.bookingNum.toString()},
+        ),
+      );
+      print('예약 알림이 전송되었습니다: ${booking.popupTitle}');
+    } catch (e) {
+      print('예약 알림 전송 중 오류 발생: $e');
+    }
+  }
+
+// 개별 예약에 대한 알림 스케줄링
   Future<void> scheduleNotification(BookingDTO booking) async {
     // 방문 날짜 전날 오후 6시에 알림
     DateTime scheduledDate =
@@ -626,8 +711,8 @@ class _LoginTabState extends State<LoginTab> {
         content: NotificationContent(
           id: notificationId,
           channelKey: 'basic_channel',
-          title: '팝업 방문 예약 알림',
-          body: '${booking.popupTitle} 팝업 방문 날짜입니다.',
+          title: '팝업 예약 완료', // 알림 제목
+          body: '"${booking.popupTitle}"을(를) 예약하였습니다.', // 알림 내용
           notificationLayout: NotificationLayout.Default,
           payload: {'bookingNum': booking.bookingNum.toString()},
         ),
