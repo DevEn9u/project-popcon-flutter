@@ -292,8 +292,8 @@ class _PopupBoardViewState extends State<PopupBoardView> {
                                         children: [
                                           Row(
                                             children: [
-                                              SvgPicture.asset(
-                                                'assets/images/profile_temp.svg',
+                                              Image.asset(
+                                                'assets/images/profile.jpg',
                                                 height: 24.0,
                                               ),
                                               SizedBox(width: 8.0),
