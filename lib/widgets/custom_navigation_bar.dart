@@ -842,25 +842,6 @@ class _LoginTabState extends State<LoginTab> {
                           ),
                         ),
                       ),
-                      SizedBox(height: 16),
-                      // 오류 메시지 표시
-                      if (errorMessage != null)
-                        GestureDetector(
-                          onLongPress: () {
-                            // 오류 메시지를 클립보드에 복사
-                            Clipboard.setData(
-                              ClipboardData(text: errorMessage!),
-                            );
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('오류 메시지가 복사되었습니다.')),
-                            );
-                          },
-                          child: Text(
-                            errorMessage!,
-                            style: TextStyle(color: Colors.red, fontSize: 16),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
                     ],
                   ),
                 ),

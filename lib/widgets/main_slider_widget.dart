@@ -32,12 +32,13 @@ class _MainSliderWidgetState extends State<MainSliderWidget> {
             return Container(
               width: MediaQuery.of(context).size.width,
               margin: EdgeInsets.symmetric(horizontal: 5.0),
-              decoration: BoxDecoration(color: Colors.amber),
+
               child: popupBoard.thumb != null && popupBoard.thumb!.isNotEmpty
                   ? CachedNetworkImage(
                       imageUrl: thumbUrl,
                       fit: BoxFit.cover,
-                      placeholder: (context, url) => CircularProgressIndicator(),
+                      placeholder: (context, url) =>
+                          CircularProgressIndicator(),
                       errorWidget: (context, url, error) =>
                           Icon(Icons.broken_image, size: 50),
                     )
