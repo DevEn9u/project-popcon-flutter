@@ -56,7 +56,8 @@ class BookingListWidget extends StatelessWidget {
                     : ElevatedButton(
                         onPressed: () {
                           Future.delayed(Duration(seconds: 3), () {
-                            scheduleImmediateNotificationForBooking(booking);
+                            // 테스트버튼 클릭시 알림 주석
+                            // scheduleImmediateNotificationForBooking(booking);
                           });
                         },
                         style: ElevatedButton.styleFrom(
@@ -89,26 +90,26 @@ class BookingListWidget extends StatelessWidget {
     );
   }
 
-  // 개별 예약에 대한 알림 스케줄링
-  Future<void> scheduleImmediateNotificationForBooking(
-      BookingDTO booking) async {
-    int notificationId = booking.bookingNum;
+  // // 개별 예약에 대한 알림 스케줄링
+  // Future<void> scheduleImmediateNotificationForBooking(
+  //     BookingDTO booking) async {
+  //   int notificationId = booking.bookingNum;
 
-    try {
-      await AwesomeNotifications().createNotification(
-        content: NotificationContent(
-          id: notificationId,
-          channelKey: 'basic_channel',
-          title: '예약 팝업 알림',
-          body: '${booking.popupTitle} 팝업 방문 예약이 있습니다.',
-          notificationLayout: NotificationLayout.Default,
-          payload: {'bookingNum': booking.bookingNum.toString()},
-        ),
-      );
+  //   try {
+  //     await AwesomeNotifications().createNotification(
+  //       content: NotificationContent(
+  //         id: notificationId,
+  //         channelKey: 'basic_channel',
+  //         title: '예약 팝업 알림',
+  //         body: '${booking.popupTitle} 팝업 방문 예약이 있습니다.',
+  //         notificationLayout: NotificationLayout.Default,
+  //         payload: {'bookingNum': booking.bookingNum.toString()},
+  //       ),
+  //     );
 
-      print('3초 후 예약 알림이 전송되었습니다.');
-    } catch (e) {
-      print('알림 전송 중 오류 발생: $e');
-    }
-  }
+  //     print('3초 후 예약 알림이 전송되었습니다.');
+  //   } catch (e) {
+  //     print('알림 전송 중 오류 발생: $e');
+  //   }
+  // }
 }

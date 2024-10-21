@@ -1,0 +1,9 @@
+# Native Splash 화면을 설정하기 위해 사용
+flutter_native_splash:
+  background_image: 'assets/images/splash_image.png'
+  color: '#121212'
+  android_12:
+    image: assets/images/splash_image.png
+    color: '#121212'
+    # 화면 하단에 표시되는 이미지
+    # branding: assets/images/dart.png

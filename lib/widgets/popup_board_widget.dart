@@ -6,7 +6,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 class PopupBoardWidget extends StatelessWidget {
   final List<PopupboardDTO> popups;
-  final String baseUrl = 'http://192.168.0.22:8080';
+  final String baseUrl = 'http://192.168.0.41:8080';
   const PopupBoardWidget({Key? key, required this.popups}) : super(key: key);
 
   @override

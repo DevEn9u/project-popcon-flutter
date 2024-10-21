@@ -9,7 +9,7 @@ class LikedPopupWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String baseUrl = 'http://192.168.0.22:8080'; // 실제 IP 주소로 변경 필요
+    final String baseUrl = 'http://192.168.0.41:8080'; // 실제 IP 주소로 변경 필요
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

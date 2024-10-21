@@ -22,7 +22,7 @@ void main() {
     baseUrl = 'http://localhost:8080'; // iOS 시뮬레이터
   } else {
     // 실제 기기나 기타 환경
-    baseUrl = 'http://192.168.0.22:8080'; // 호스트 머신의 IP 주소로 변경
+    baseUrl = 'http://192.168.0.41:8080'; // 호스트 머신의 IP 주소로 변경
   }
 
   // Awesome Notifications 초기화
