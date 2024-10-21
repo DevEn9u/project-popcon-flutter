@@ -11,7 +11,7 @@ import '../models/image_dto.dart'; // 필요 시 추가
 class ApiService {
   static final ApiService _instance = ApiService._internal();
   late Dio _dio;
-  final String baseUrl = 'http://192.168.0.22:8080'; // 실제 기기 테스트 시 IP 주소로 변경
+  final String baseUrl = 'http://3.38.153.104:8586'; // 실제 기기 테스트 시 IP 주소로 변경
   final FlutterSecureStorage _secureStorage = FlutterSecureStorage();
   String? _token;
 
